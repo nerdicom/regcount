@@ -12,6 +12,12 @@ The adapter requests https://api.dotdb.com/v2/search using the documented Token 
 
 Country-code classification uses a two-character final DNS label, including .ai, .io, .co, and multi-part suffixes like .co.uk. Internationalized input needs punycode. Enter a keyword or a registrable domain, not a subdomain. The current keyword normalizer takes the first label after stripping www. Coverage and freshness depend on the provider, and missing results do not establish availability.
 
+## Results layout
+
+Search opens a full-width name overview with summary counts, a pinned exact-match row, sortable related counts, and all returned extensions displayed as wrapping links. Extension filters change the visible lists without changing Count or Active totals. The Extension cards tab retains the exact-name grid and copy action. CSV exports reflect the selected view and retain sample/source labels. Partial extension lists are identified explicitly.
+
+The optional `activeCount` on search results and related matches means a verified active website count. Current sample and dotDB adapters do not supply website-activity data, so the interface and CSV show “Not checked.” Missing activity is never inferred from zone presence or treated as zero; a supplied zero remains zero. This layout does not connect the VPS data pipeline or implement website crawling.
+
 ## Development
 
 This repository is a standard Next.js application for Node.js hosting. The earlier private preview used Cloudflare; this GitHub version no longer requires that runtime.
