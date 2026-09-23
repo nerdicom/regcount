@@ -1,8 +1,10 @@
-import {demoResult,normalizeQuery,parseSearchPosition,matchesPosition,type SearchPosition,type SearchResult,type DomainMatch} from './domains';
+import {demoResult,normalizeQuery,parseSearchPosition,matchesPosition,type SearchPosition,type SearchResult,type DomainMatch,type DataSource} from './domains';
+import { searchCZDS } from './czds-provider';
+import { ProviderError } from './provider-error';
+export { ProviderError } from './provider-error';
 
-type Settings={REGCOUNT_LIVE_ENABLED?:string;DOTDB_API_KEY?:string};
-export class ProviderError extends Error{constructor(message:string,public status=502){super(message);}}
-export function dataMode(): 'dotdb' | 'demo' {const settings=process.env as Settings;return settings.REGCOUNT_LIVE_ENABLED==='true'?'dotdb':'demo';}
+type Settings={REGCOUNT_LIVE_ENABLED?:string;DOTDB_API_KEY?:string;REGCOUNT_DATA_SOURCE?:string};
+export function dataMode(): DataSource {const settings=process.env as Settings;return settings.REGCOUNT_LIVE_ENABLED==='true'?(settings.REGCOUNT_DATA_SOURCE==='czds'?'czds':'dotdb'):'demo';}
 const cache=new Map<string,{expires:number;value:SearchResult}>();
 function cleanSuffixes(value:unknown):string[]{if(!Array.isArray(value))return[];return [...new Set(value.filter((x):x is string=>typeof x==='string').map(s=>s.replace(/^\./,'').toLowerCase()).filter(s=>/^[a-z0-9-]+(?:\.[a-z0-9-]+)*$/.test(s)))];}
 function numeric(value:unknown):number|null{if(value===null||value===undefined||value==='')return null;const n=Number(value);return Number.isSafeInteger(n)&&n>=0?n:null;}
@@ -18,6 +20,7 @@ async function queryProvider(query:string,key:string,position:SearchPosition,exa
 }
 export async function searchRegistrations(value:string,requestedPosition:unknown='any'):Promise<SearchResult>{
  const query=normalizeQuery(value),position=parseSearchPosition(requestedPosition),mode=dataMode();if(mode==='demo')return demoResult(query,position);
+ if(mode==='czds')return searchCZDS(query,position);
  const key=(process.env as Settings).DOTDB_API_KEY;if(!key)throw new ProviderError('Live registration data has not been connected yet.',503);
  const cacheKey=`${position}:${query}`;
  const cached=cache.get(cacheKey);if(cached&&cached.expires>Date.now())return cached.value;

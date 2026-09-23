@@ -13,6 +13,13 @@
 .search-content-compact .illustrated-guide { border-top: 3px solid var(--logo-teal); }
 .search-content-compact .illustrated-guide.guide-color-2 { border-top-color: var(--logo-amber); }
 .search-content-compact .illustrated-guide.guide-color-3 { border-top-color: var(--logo-violet); }
+.coverage-note { margin: 0 24px 18px; padding: 12px 15px; background: #e3f1ed; border: 1px solid #bfd9d2; border-radius: 7px; color: #304b50; font-size: .75rem; line-height: 1.7; }
+.coverage-note summary { cursor: pointer; font-weight: 650; }
+.coverage-note p { margin: 9px 0; }
+.coverage-note ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 5px 20px; list-style: none; padding: 0; margin: 12px 0 0; }
+.coverage-note li { display: flex; flex-direction: column; }
+.bulk-results-panel .coverage-note { margin: 0 20px 15px; }
+@media(max-width:640px) { .coverage-note { margin-left: 16px; margin-right: 16px; } .coverage-note ul { grid-template-columns: 1fr; } }
 
 .site-header.product-header { height: 72px; }
 .product-header .brand { font-size: 1.55rem; letter-spacing: -.9px; }

@@ -14,8 +14,11 @@ export function matchesPosition(name: string, query: string, position: SearchPos
  return position === 'beginning' ? name.startsWith(query) : position === 'end' ? name.endsWith(query) : name.includes(query);
 }
 export type DomainMatch = {name: string; count: number; activeCount?: number | null; suffixes: string[]};
-export type SearchResult = {query: string; position: SearchPosition; source: 'demo' | 'dotdb'; total: number | null; activeCount?: number | null; suffixes: string[]; related: DomainMatch[]; relatedPartial: boolean; fetchedAt: string | null; message?: string};
-export type BulkRow = {query: string; total: number | null; source: 'demo' | 'dotdb'; suffixes: string[]; error?: string};
+export type DataSource = 'demo' | 'dotdb' | 'czds';
+export type ZoneCoverage = {basis: 'delegated-domains'; zones: {tld: string; domainCount: number; downloadedAt: string; importedAt: string; stale: boolean}[]; requiredMissing: string[]};
+export type SearchResult = {query: string; position: SearchPosition; source: DataSource; total: number | null; activeCount?: number | null; suffixes: string[]; related: DomainMatch[]; relatedPartial: boolean; relatedMessage?: string; fetchedAt: string | null; message?: string; coverage?: ZoneCoverage};
+export type BulkRow = {query: string; total: number | null; source: DataSource; suffixes: string[]; error?: string; coverage?: ZoneCoverage};
+export function sourceLabel(source: DataSource) { return source === 'demo' ? 'ILLUSTRATIVE SAMPLE — NOT VERIFIED' : source === 'czds' ? 'CZDS — DNS-DELEGATED DOMAINS IN COVERED ZONES' : 'dotDB'; }
 export const SAMPLE_NAMES = ['cypress', 'atlas', 'orbit', 'nova', 'outdoors', 'windmill'];
 const common = 'com net org co io ai app dev tech xyz online site store info biz me us uk co.uk de fr ca au com.au nl ch it es eu in jp cn tv cc si cloud digital solutions group live world space agency studio design shop pro mobi news social network systems software team one'.split(' ');
 const samples: Record<string,string[]> = {

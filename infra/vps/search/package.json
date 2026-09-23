@@ -1,0 +1,9 @@
+{
+  "name": "regcount-private-search",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": { "start": "node server.mjs", "test": "node --test test-service.mjs" },
+  "dependencies": { "pg": "8.23.0" }
+}
