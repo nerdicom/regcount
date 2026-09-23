@@ -37,6 +37,9 @@
 .research-shell .name-results-table thead { background: #213851; }
 .research-shell .name-results-table thead th { padding-top: 12px; padding-bottom: 12px; }
 .research-shell .name-results-table tbody th, .research-shell .name-results-table tbody td { padding-top: 18px; padding-bottom: 18px; }
+.research-shell .name-results-table thead th:last-child, .research-shell .name-results-table tbody td:last-child { padding-right: 24px; }
+.research-shell .result-extensions-cell { text-align: right; }
+.research-shell .suffix-wrap { justify-content: flex-end; }
 .research-shell .suffix-tag { padding: 3px 7px; }
 .research-shell .activity-explanation { padding: 13px 24px; }
 .research-shell .bulk-intro { padding: 30px 0 0; margin-bottom: 22px; }
@@ -135,6 +138,7 @@
   .research-shell .overview-toolbar { padding: 0 16px; }
   .research-shell .overview-filters { padding: 12px 16px; }
   .research-shell .name-results-table tbody th, .research-shell .name-results-table tbody td { padding-top: 0; padding-bottom: 0; }
+  .research-shell .name-results-table tbody td:last-child { padding-right: 0; }
   .research-shell .activity-explanation { padding: 13px 16px; }
   .research-shell .bulk-intro h1 { font-size: 1.8rem; }
   .sponsor-spot { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 15px 16px; }
