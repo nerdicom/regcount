@@ -25,6 +25,11 @@ export default function PrivacyPage() {
         <p>Google and Meta process sign-in requests under their own privacy policies. If you email us, your address and message are processed by our email service to help us respond. RegCount&apos;s application does not use your sign-in information for advertising or sell it.</p>
         <p>Service providers may process information in countries other than your own. You can read the <a href="https://policies.google.com/privacy">Google Privacy Policy</a>, <a href="https://www.facebook.com/privacy/policy/">Meta Privacy Policy</a>, and <a href="https://www.hostinger.com/legal/privacy-policy">Hostinger Privacy Policy</a> for their practices.</p>
       </section>
+      <section><h2>Promotions and sponsorship enquiries</h2>
+        <p>RegCount, Nerdi, and DNLaunch share an owner. Links to those businesses are labeled as owner promotions. Other commercial placements are labeled as sponsored. Clicking a promotional link takes you to the destination website, where its own privacy policy applies.</p>
+        <p>Promotional links may contain campaign tags identifying RegCount as the referring site. We do not put your search term or sign-in details in those tags, and promotional links suppress the page referrer. No advertising pixels or third-party ad scripts are loaded by these placements.</p>
+        <p>The advertising enquiry link opens a draft in your email app. Your message is not sent until you send it. We use correspondence you send to discuss availability, campaign details, and pricing. Learn more on our <Link href="/advertise">advertising page</Link>.</p>
+      </section>
       <section><h2>Your choices and deletion requests</h2>
         <p>You can use the public domain research tools without signing in. You can sign out, clear site data, and remove RegCount&apos;s connection in your Google or Facebook account settings. Removing that connection does not automatically clear a RegCount session already stored in a browser.</p>
         <p>To ask about access, correction, or deletion of information associated with you, email <a href="mailto:info@regcount.com">info@regcount.com</a>. We may need to verify that a request relates to your account. Please do not send passwords, access tokens, or identity documents in your initial message.</p>

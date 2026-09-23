@@ -1,3 +1,4 @@
+import { SponsorSpot } from '@/components/sponsor-spot';
 import RegCount from '@/components/regcount';
 import { SearchContent } from '@/components/search-content';
 import { StructuredData } from '@/components/structured-data';
@@ -9,7 +10,7 @@ export async function generateMetadata({ searchParams }: { searchParams: SearchP
 }
 export default function Home() {
   return <>
-    <RegCount><SearchContent/></RegCount>
+    <RegCount promotion={<SponsorSpot/>}><SearchContent/></RegCount>
     <StructuredData value={{ '@context': 'https://schema.org', '@graph': [
       { '@type': 'Organization', '@id': `${SITE_URL}/#organization`, name: 'RegCount', url: SITE_URL, logo: `${SITE_URL}/regcount-logo.png` },
       { '@type': 'WebSite', '@id': `${SITE_URL}/#website`, name: 'RegCount', url: SITE_URL, publisher: { '@id': `${SITE_URL}/#organization` }, inLanguage: 'en' },

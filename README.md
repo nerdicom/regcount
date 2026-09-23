@@ -18,6 +18,16 @@ Search opens a full-width name overview with summary counts, a pinned exact-matc
 
 The optional `activeCount` on search results and related matches means a verified active website count. Current sample and dotDB adapters do not supply website-activity data, so the interface and CSV show “Not checked.” Missing activity is never inferred from zone presence or treated as zero; a supplied zero remains zero. This layout does not connect the VPS data pipeline or implement website crawling.
 
+## Revenue paths
+
+The search and bulk pages show a labeled Nerdi owner promotion linking to the existing $500 website-design offer, and search includes a DNLaunch marketplace referral. Both links use fixed `utm_source=regcount` campaign tags. They never append the searched name or account information, suppress the page referrer, and load no advertising scripts. These are referrals to businesses under the same ownership, not activated registrar affiliate accounts.
+
+`/advertise` offers a clearly labeled search sponsorship. Its CTA opens an email draft to `info@regcount.com`; the visitor sends it themselves. It does not charge, book dates, deliver email through the server, or promise an audience size. Confirm terms, collect payment through your chosen billing process, and approve campaign copy before activating a sponsor.
+
+To replace the Nerdi slot with a paid sponsor, set all five `REGCOUNT_SPONSOR_*` values from `.env.example` in Hostinger, then redeploy. HTTPS destination URLs are required; URLs containing credentials and incomplete/oversized copy fall back to the owner promotion. The slot and disclosure are server-rendered, and `rel="sponsored noopener noreferrer"` is applied. Remove the values and redeploy to restore the owner promotion. Read-only query and bulk results remain unaffected by sponsor settings.
+
+Domain-registrar commissions and recurring subscriptions are not configured. A real affiliate account/tracking link or payment service and account entitlements would be needed before enabling those revenue paths.
+
 ## Development
 
 This repository is a standard Next.js application for Node.js hosting. The earlier private preview used Cloudflare; this GitHub version no longer requires that runtime.
