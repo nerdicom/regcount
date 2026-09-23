@@ -79,7 +79,45 @@ GRANT SELECT ON domain_index.domains, domain_index.zones TO regcount_search;
 COMMIT;
 """)
 
-def request(path, origin='http://127.0.0.1:8787'):
+# Both API networks are internal. Run readiness in the API's own network
+# namespace instead of relying on host port publishing for an isolated service.
+# The token is read inside the container, never passed as a process argument.
+LOCAL_STATUS_PROBE = """
+import { readFileSync } from 'node:fs';
+try {
+    const token = readFileSync('/run/secrets/search_api_token', 'utf8').trim();
+    const response = await fetch('http://127.0.0.1:8787/v1/status', {
+        headers: { Authorization: 'Bearer ' + token }, redirect: 'error',
+        signal: AbortSignal.timeout(12000)
+    });
+    if (response.status === 401) process.exit(3);
+    if (!response.ok) process.exit(2);
+    console.log(JSON.stringify(await response.json()));
+} catch { process.exit(1); }
+"""
+
+def request(path, origin=None):
+    if origin is None:
+        if path != '/v1/status':
+            raise RuntimeError('Unsupported private status request.')
+        try:
+            result = subprocess.run(COMPOSE + ['exec', '-T', 'api', 'node', '--input-type=module', '-'],
+                                    input=LOCAL_STATUS_PROBE, text=True, capture_output=True, timeout=20)
+        except subprocess.TimeoutExpired:
+            raise RuntimeError('Private API check timed out. Retry regcount-search status.') from None
+        if result.returncode:
+            messages = {
+                2: 'Private API is reachable, but its database readiness check failed.',
+                3: 'Private API rejected its authentication token.',
+            }
+            raise RuntimeError(messages.get(result.returncode, 'Private API check could not run. Check the search container status.'))
+        try:
+            value = json.loads(result.stdout)
+            if not isinstance(value, dict) or value.get('status') != 'ready' or not isinstance(value.get('coverage'), dict):
+                raise ValueError()
+            return value
+        except (ValueError, TypeError):
+            raise RuntimeError('Private API returned an invalid readiness response.') from None
     req = urllib.request.Request(origin + path, headers={'Authorization': 'Bearer ' + private_file('api-token')})
     # No redirects: never forward the API token to another host.
     class NoRedirect(urllib.request.HTTPRedirectHandler):

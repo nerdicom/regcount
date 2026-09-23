@@ -1,5 +1,7 @@
 import importlib.util
+import json
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -55,6 +57,35 @@ class ManageTests(unittest.TestCase):
         for value in ['localhost','https://example.com','$(id).example.com','example.com\nBAD=x']:
             with self.assertRaises(RuntimeError):
                 manage.publish(value)
+
+    def test_private_readiness_runs_inside_container(self):
+        payload = {'status': 'ready', 'coverage': {'zones': []}}
+        result = subprocess.CompletedProcess([], 0, stdout=json.dumps(payload), stderr='')
+        with patch.object(manage.subprocess, 'run', return_value=result) as run, patch.object(manage, 'private_file') as secret, patch.object(manage.urllib.request, 'build_opener') as network:
+            self.assertEqual(manage.request('/v1/status'), payload)
+            call = run.call_args
+            self.assertEqual(call.args[0], manage.COMPOSE + ['exec', '-T', 'api', 'node', '--input-type=module', '-'])
+            self.assertIn('/v1/status', call.kwargs['input'])
+            self.assertIn('readFileSync', call.kwargs['input'])
+            self.assertIn("redirect: 'error'", call.kwargs['input'])
+            self.assertTrue(call.kwargs['capture_output'])
+            self.assertEqual(call.kwargs['timeout'], 20)
+            secret.assert_not_called()
+            network.assert_not_called()
+
+    def test_private_readiness_errors_are_safe_and_specific(self):
+        for code, expected in [(1, 'could not run'), (2, 'database readiness'), (3, 'authentication token')]:
+            with self.subTest(code=code), patch.object(manage.subprocess, 'run', return_value=subprocess.CompletedProcess([], code, stdout='sensitive-output', stderr='sensitive-output')):
+                with self.assertRaisesRegex(RuntimeError, expected) as error:
+                    manage.request('/v1/status')
+                self.assertNotIn('sensitive-output', str(error.exception))
+        with patch.object(manage.subprocess, 'run', side_effect=subprocess.TimeoutExpired([], 20)):
+            with self.assertRaisesRegex(RuntimeError, 'timed out'):
+                manage.request('/v1/status')
+        for body in ['not JSON', '{}', '[]']:
+            with self.subTest(body=body), patch.object(manage.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, stdout=body)):
+                with self.assertRaisesRegex(RuntimeError, 'invalid readiness'):
+                    manage.request('/v1/status')
 
 if __name__ == '__main__':
     unittest.main()
