@@ -1,5 +1,6 @@
-export type DomainMatch = {name: string; count: number; suffixes: string[]};
-export type SearchResult = {query: string; source: 'demo' | 'dotdb'; total: number | null; suffixes: string[]; related: DomainMatch[]; relatedPartial: boolean; fetchedAt: string | null; message?: string};
+// activeCount must come from explicit website-activity data, never from DNS or suffix counts.
+export type DomainMatch = {name: string; count: number; activeCount?: number | null; suffixes: string[]};
+export type SearchResult = {query: string; source: 'demo' | 'dotdb'; total: number | null; activeCount?: number | null; suffixes: string[]; related: DomainMatch[]; relatedPartial: boolean; fetchedAt: string | null; message?: string};
 export type BulkRow = {query: string; total: number | null; source: 'demo' | 'dotdb'; suffixes: string[]; error?: string};
 export const SAMPLE_NAMES = ['cypress', 'atlas', 'orbit', 'nova', 'outdoors', 'windmill'];
 const common = 'com net org co io ai app dev tech xyz online site store info biz me us uk co.uk de fr ca au com.au nl ch it es eu in jp cn tv cc si cloud digital solutions group live world space agency studio design shop pro mobi news social network systems software team one'.split(' ');
