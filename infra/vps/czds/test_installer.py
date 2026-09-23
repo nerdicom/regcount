@@ -2,6 +2,7 @@
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -55,8 +56,9 @@ else:
         (self.bin / "curl").chmod(0o755)
         (self.bin / "docker").chmod(0o755)
 
-    def run_installer(self, revision=REVISION, **extra):
-        return subprocess.run(["bash", str(self.script), revision], env={**self.env, **extra}, capture_output=True, text=True)
+    def run_installer(self, revision=REVISION, automate=False, **extra):
+        args = ["bash", str(self.script), revision] + (["--automate"] if automate else [])
+        return subprocess.run(args, env={**self.env, **extra}, capture_output=True, text=True)
 
     def test_install_rerun_preserves_credentials_cache_and_database(self):
         result = self.run_installer()
@@ -78,24 +80,48 @@ else:
         self.assertFalse((self.folder / "schema-created").exists())
         self.assertFalse(self.launcher.exists())
 
-    def test_upgrade_from_four_file_manifest_keeps_private_state(self):
+    def test_upgrade_from_previous_manifests_keeps_private_state(self):
         self.assertEqual(self.run_installer().returncode, 0)
         target = self.root / "czds"
         previous = target / "app"
-        # Model the installed v1 release's four-file manifest, before limits.py.
-        manifest = previous / "SHA256SUMS"
-        manifest.write_text("\n".join(line for line in manifest.read_text().splitlines() if not line.endswith("limits.py")) + "\n")
-        (previous / "limits.py").unlink()
         (target / "credentials.json").write_text("PRIVATE FIXTURE")
         (target / "cache/app.attempt.json").write_text("KEEP TIMER")
-        result = self.run_installer(revision="b" * 40)
+        for removed, revision in [(('limits.py', 'automation.py'), 'b' * 40), (('automation.py',), 'c' * 40)]:
+            with self.subTest(removed=removed):
+                # Model both the original four-file and medium-profile five-file releases.
+                manifest = previous / "SHA256SUMS"
+                manifest.write_text("\n".join(line for line in manifest.read_text().splitlines() if not line.endswith(removed)) + "\n")
+                for name in removed:
+                    (previous / name).unlink()
+                result = self.run_installer(revision=revision)
+                self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+                self.assertEqual(os.readlink(previous), "release-" + revision)
+                self.assertTrue((previous / "automation.py").exists())
+                self.assertTrue((target / ("release-" + REVISION)).is_dir())
+                self.assertEqual((target / "credentials.json").read_text(), "PRIVATE FIXTURE")
+                self.assertEqual((target / "cache/app.attempt.json").read_text(), "KEEP TIMER")
+                self.assertEqual((self.root / "compose.yaml").read_text(), "DO NOT CHANGE\n")
+
+    def test_automation_flag_dispatches_after_releasing_installer_lock(self):
+        # Intercept only automation activation; never install real systemd units.
+        shim = self.bin / 'python3'
+        shim.write_text(f'''#!{sys.executable}
+import fcntl, os, pathlib, sys
+if len(sys.argv) > 2 and sys.argv[1].endswith('/regcount-czds.py') and sys.argv[2] == 'automate':
+    root = pathlib.Path(os.environ['TEST_FOLDER']) / 'data/czds'
+    with (root / 'run.lock').open('w') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        (root / 'automation-dispatched').write_text('yes')
+else:
+    os.execv({sys.executable!r}, [{sys.executable!r}] + sys.argv[1:])
+''')
+        shim.chmod(0o755)
+        fake_systemctl = self.bin / 'systemctl'
+        fake_systemctl.write_text('#!/bin/sh\nexit 0\n')
+        fake_systemctl.chmod(0o755)
+        result = self.run_installer(automate=True)
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
-        self.assertEqual(os.readlink(previous), "release-" + "b" * 40)
-        self.assertTrue((previous / "limits.py").exists())
-        self.assertTrue((target / ("release-" + REVISION)).is_dir())
-        self.assertEqual((target / "credentials.json").read_text(), "PRIVATE FIXTURE")
-        self.assertEqual((target / "cache/app.attempt.json").read_text(), "KEEP TIMER")
-        self.assertEqual((self.root / "compose.yaml").read_text(), "DO NOT CHANGE\n")
+        self.assertEqual((self.root / 'czds/automation-dispatched').read_text(), 'yes')
 
     def test_unmanaged_directory_is_preserved(self):
         target = self.root / "czds"

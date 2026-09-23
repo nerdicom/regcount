@@ -6,10 +6,12 @@ import fcntl
 import getpass
 import gzip
 import hashlib
+import http.client
 import json
 import os
 from pathlib import Path
 import shutil
+import signal
 import stat
 import subprocess
 import sys
@@ -35,6 +37,14 @@ class SafeError(RuntimeError):
     pass
 
 
+class TransientError(SafeError):
+    pass
+
+
+class DiskSpaceError(SafeError):
+    pass
+
+
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         raise SafeError("ICANN redirected the request; endpoint review required.")
@@ -56,9 +66,10 @@ def request(url, token=None, payload=None):
             raise SafeError("ICANN returned an unexpected HTTP status.")
         return response
     except urllib.error.HTTPError as exc:
-        raise SafeError(f"ICANN HTTP {exc.code}. Check account/access status; credentials were not logged.") from None
+        error = TransientError if exc.code == 429 or exc.code >= 500 else SafeError
+        raise error(f"ICANN HTTP {exc.code}. Check account/access status; credentials were not logged.") from None
     except (urllib.error.URLError, TimeoutError):
-        raise SafeError("ICANN connection failed or timed out; credentials were not logged.") from None
+        raise TransientError("ICANN connection failed or timed out; credentials were not logged.") from None
 
 
 def json_response(response):
@@ -143,7 +154,7 @@ def database_storage():
 def disk_guard(required=MIN_FREE):
     for path in (ROOT, DB_STORAGE):
         if path is not None and shutil.disk_usage(path).free < required:
-            raise SafeError(f"Less than {required / GIB:g} GiB free on an importer/database filesystem. Review disk usage; nothing committed by this attempt.")
+            raise DiskSpaceError(f"Less than {required / GIB:g} GiB free on an importer/database filesystem. Review disk usage; nothing committed by this attempt.")
 
 
 def capacity(tld, profile):
@@ -205,6 +216,8 @@ def download(tld, url, token, limits=PILOT):
         os.replace(partial, folder / (tld + ".zone.gz"))
         save_json(folder / (tld + ".json"), metadata)
         return metadata
+    except (TimeoutError, ConnectionError, http.client.HTTPException):
+        raise TransientError("Zone transfer was interrupted; the 24-hour download timer remains active.") from None
     finally:
         partial.unlink(missing_ok=True)
 
@@ -236,11 +249,22 @@ def import_cache(tld, allow_large_drop=False, limits=PILOT):
 
 def main():
     global DB_STORAGE
+    import automation
+    client = sys.modules[__name__]
     os.umask(0o077)
+    def interrupted(signum, frame):
+        raise KeyboardInterrupt
+    signal.signal(signal.SIGTERM, interrupted)
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     for name in ["configure", "approved", "status"]:
         sub.add_parser(name)
+    auto = sub.add_parser("automate", help="enable background imports and daily refreshes")
+    auto.add_argument("--disable", action="store_true")
+    sub.add_parser("queue-run", help="process one due zone; used by the systemd service")
+    sub.add_parser("progress", help="show background queue progress without waiting for an import")
+    retry_parser = sub.add_parser("retry", help="clear a reviewed queue error without resetting download timers")
+    retry_parser.add_argument("tld", nargs="?", type=tld_name)
     for name in ["sync", "import-cache", "capacity"]:
         command = sub.add_parser(name)
         command.add_argument("tld", type=tld_name)
@@ -253,10 +277,19 @@ def main():
     info = ROOT.lstat()
     if not stat.S_ISDIR(info.st_mode) or info.st_uid != 0 or stat.S_IMODE(info.st_mode) != 0o700:
         raise SafeError("Importer directory must be root-owned with permissions 700.")
+    if args.command == "progress":
+        automation.progress(client)
+        return
+    if args.command == "automate" and args.disable:
+        automation.enable(client, disable=True)
+        return
     with (ROOT / "run.lock").open("w") as lock:
         try:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
+            if args.command == "queue-run":
+                print("Another import or upgrade is running; the queue will check again later.")
+                return
             raise SafeError("Another RegCount CZDS command is running.") from None
         if args.command == "configure":
             configure()
@@ -266,8 +299,16 @@ def main():
             print(f"{len(links)} approved download links. No zones downloaded.")
         elif args.command == "status":
             subprocess.run(PSQL + ["-c", "SELECT tld, domain_count, soa_serial, downloaded_at, imported_at FROM domain_index.zones ORDER BY tld"], check=True)
+        elif args.command == "retry":
+            automation.retry(client, args.tld)
         else:
             DB_STORAGE = database_storage()
+            if args.command == "automate":
+                automation.enable(client, args.disable)
+                return
+            if args.command == "queue-run":
+                automation.run(client)
+                return
             if args.command == "capacity":
                 capacity(args.tld, args.profile)
                 return

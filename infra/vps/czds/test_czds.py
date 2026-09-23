@@ -111,6 +111,20 @@ class DownloadTests(unittest.TestCase):
                 self.assertFalse((root / "cache/test.partial").exists())
                 self.assertFalse((root / "cache/test.zone.gz").exists())
 
+    def test_read_timeout_is_retryable_and_preserves_attempt_history(self):
+        class Response(io.BytesIO):
+            def read(self, *args):
+                raise TimeoutError('private network diagnostic')
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / 'cache').mkdir()
+            with patch.object(client, 'ROOT', root), patch.object(client, 'disk_guard'), patch.object(client, 'request', return_value=Response()):
+                with self.assertRaises(client.TransientError) as caught:
+                    client.download('app', 'url', 'private token', MEDIUM)
+                self.assertNotIn('private', str(caught.exception))
+                self.assertTrue((root / 'cache/app.attempt.json').exists())
+                self.assertFalse((root / 'cache/app.partial').exists())
+
     def test_hash_mismatch_never_calls_database(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

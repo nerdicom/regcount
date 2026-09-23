@@ -1,8 +1,9 @@
-# CZDS single-zone pilot
+# CZDS imports and background refresh queue
 
 This adds private download, parsing and indexed storage to the existing
-PostgreSQL VPS foundation. It does not change the website, publish a search API,
-download all approved zones, or enable an unattended schedule.
+PostgreSQL VPS foundation, with optional background scheduling for an explicit
+list of extensions. It does not change the website, publish a search API or
+download every approved zone.
 
 The [coverage priorities](COVERAGE.md) track the ten required extensions,
 supplemental country-code sources and the checks needed before claiming live
@@ -12,7 +13,7 @@ coverage. The pilot limits do not yet support an unmeasured .com import.
 
 Use `infra/vps/install-czds.sh` from a reviewed immutable commit. Pass the same
 40-character commit SHA as its sole argument. The installer downloads only the
-five production files in this directory and verifies `SHA256SUMS`. It leaves
+six production files in this directory and verifies `SHA256SUMS`. It leaves
 the existing PostgreSQL password, Compose configuration and volume intact.
 It requires root, Python 3.11+, Docker Compose, curl, flock and sha256sum.
 
@@ -51,6 +52,76 @@ Expected status includes the extension, unique delegated-domain count, SOA
 serial, download timestamp and import timestamp. The count is observed from
 the zone file, not a claimed count of every registered domain. Do not infer
 availability from a name's absence. CZDS does not supply all ccTLDs.
+
+## Background automation
+
+After installing a reviewed revision, enable the queue once:
+
+```sh
+regcount-czds automate
+```
+
+Alternatively, pass `--automate` as the second argument to the commit-pinned
+installer to upgrade and enable the queue in the same setup command. This
+explicit option installs and starts a systemd timer. Installing without that
+option does not newly enable automation or alter an existing queue.
+
+The initial queue contains `.app`, `.xyz`, `.org`, `.dev`, `.zone`, `.info`,
+`.biz`, `.cloud`, `.tech`, `.shop`, `.online`, `.site`, `.store`, `.pro` and
+`.name`. Each download is checked against the current account's approved
+links. Unapproved extensions are reported and rechecked after 24 hours. This
+list is a set of targets, not a coverage claim. `.com`/`.net` remain outside
+the default queue pending access and large-zone capacity validation; ccTLD
+acquisition remains separate.
+
+- A persistent systemd timer checks every 15 minutes. Each activation handles
+  at most one zone, and never starts a competing importer. New zones are
+  prioritized before refreshes. No terminal connection needs to remain open.
+- Download attempts for each extension remain at least 24 hours apart. Existing
+  manual-import timers are retained. Waiting for one extension does not block
+  others. A zone with a complete uncommitted cache can be imported without a
+  network request; cache integrity is still checked before parsing.
+- `.dev`/`.zone` use the pilot profile; the other default targets use medium.
+  File limits, space checks, serial validation and the count-drop guard remain
+  active. The queue never passes `--allow-large-drop` automatically.
+- Disk pressure defers work automatically. Temporary connection failures back
+  off, with download failures still respecting the 24-hour attempt limit.
+  Authentication errors pause the queue for review. Parser, size and database
+  errors pause the affected zone while other zones can continue.
+- The worker has a three-hour time limit and handles SIGTERM by closing the
+  database input without sending COMMIT. An interrupted zone is reconciled
+  against committed checksums; uncertain outcomes are flagged for review.
+  Remaining queued work resumes when the timer runs after a reboot.
+
+Use one command for the current timer, per-zone status and committed counts:
+
+```sh
+regcount-czds progress
+```
+
+This works while an import is running. Logs stay on the VPS:
+
+```sh
+journalctl -u regcount-czds-queue.service -n 50 --no-pager
+```
+
+To disable future automatic runs (an import already running may finish):
+
+```sh
+regcount-czds automate --disable
+```
+
+After addressing an error and checking current committed data, clear a zone's
+review flag with `regcount-czds retry <tld>`. After correcting an account or
+global configuration problem, use `regcount-czds retry` without a TLD. Neither
+command resets download history or directly starts a transfer.
+
+Configuration and state are private files at `queue.json` and
+`queue-state.json` under the importer directory. Existing configuration is
+preserved on reinstallation. To customize the queue, disable scheduling,
+wait for the current import to finish, then edit the explicit zone/profile
+list and re-enable it. No credentials belong in this queue configuration.
+No email, external notification or public monitoring endpoint is configured.
 
 ## Data and recovery behavior
 
@@ -156,6 +227,8 @@ Files live under `/opt/regcount-data/czds` (root, mode 700):
 - `cache/<tld>.zone.gz`: most recent complete private download.
 - `cache/<tld>.json`: checksum and download metadata.
 - `cache/<tld>.attempt.json`: persistent download cadence history.
+- `queue.json`: explicit automation targets and import profiles.
+- `queue-state.json`: progress, errors and retry state.
 - `app`: symlink to the immutable installed code release.
 
 Raw zone data must remain private and be used under the registry's accepted
@@ -171,10 +244,14 @@ Run the parser, download-safety and process-abort tests with:
 python3 -m unittest discover -s infra/vps/czds -p 'test_*.py' -v
 ```
 
-The 24 Python tests include simulated installer reruns and upgrades from the
-four-file release, checksum failures, separate database filesystem checks,
-profile consistency and preserving credentials/download history. A failed
-disk preflight must not consume a download attempt; a failed transfer must.
+The Python tests include simulated installer reruns and upgrades from the
+four- and five-file releases, checksum failures, separate database filesystem
+checks, profile consistency and preserving credentials/download history.
+Queue tests use a controlled clock and synthetic data to check cooldowns,
+one-zone execution, manual-import coexistence, interrupted-commit recovery,
+error handling, cached imports, unavailable approvals and nonblocking progress.
+Installer tests verify activation only after releasing the import lock. No
+real systemd units or schedules are enabled by these local tests.
 
 `test-postgres.mjs` tests the generated DDL/DML in a disposable PGlite
 PostgreSQL 17.5 instance with synthetic zone records: unique counts, another
@@ -185,18 +262,14 @@ the separate test-only dependency command; it is not a website dependency.
 
 The embedded database uses a file-device COPY adapter in place of psql's
 STDIN, and its synthetic database catalog does not support the database-level
-GRANT. User-provided VPS output on 2026-09-23 confirms native PostgreSQL 17.11
-schema setup, ICANN authentication, 853 approved links, and successful imports
-of `.zone` (31,719) and `.dev` (767,025). The next `.app` transfer stopped at the
-original 256 MiB compressed cap and left those rows intact. The new medium
-profile still needs a VPS capacity check and a complete real-zone benchmark.
-No live credentials or registry data were used in local tests.
+GRANT. Deployment-specific systemd operation, actual registry formats and
+large-zone performance require VPS validation. No live credentials or registry
+data were used in local tests.
 
 ## After the pilot
 
-Validate the first real zone's count and disk use, then add an explicit approved
-zone list and a refresh schedule at least 24 hours apart with failure alerts.
-Before connecting the public website, add an authenticated HTTPS API, a
+Measure per-zone count, import time and disk growth as the bounded queue runs.
+Before connecting the public website, add external failure alerts, an authenticated HTTPS API, a
 read-only database role, rate limits, coverage/freshness labels and restricted
 backups with a restore test. This commit deliberately keeps the website's
 current data-provider setting unchanged.
@@ -208,3 +281,5 @@ current data-provider setting unchanged.
 - [Serial number arithmetic, RFC 1982](https://www.rfc-editor.org/rfc/rfc1982)
 - [PostgreSQL COPY](https://www.postgresql.org/docs/17/sql-copy.html)
 - [PostgreSQL partitioning](https://www.postgresql.org/docs/17/ddl-partitioning.html)
+- [systemd timers](https://github.com/systemd/systemd/blob/main/man/systemd.timer.xml)
+- [systemd process termination](https://github.com/systemd/systemd/blob/main/man/systemd.kill.xml)

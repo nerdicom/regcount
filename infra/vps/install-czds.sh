@@ -8,7 +8,12 @@ readonly marker=regcount-czds-v1
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 [[ $EUID -eq 0 ]] || fail 'Run as root in the VPS terminal.'
 [[ ${1:-} =~ ^[0-9a-f]{40}$ ]] || fail 'Provide the reviewed 40-character Git commit SHA.'
+[[ $# -le 2 && ( -z ${2:-} || ${2:-} == --automate ) ]] || fail 'Optional second argument: --automate'
 readonly revision=$1
+readonly automate=${2:-}
+if [[ "$automate" == --automate ]]; then
+  command -v systemctl >/dev/null || fail 'systemd is required for background imports.'
+fi
 for program in python3 docker curl flock sha256sum; do
   command -v "$program" >/dev/null || fail "Missing required command: $program"
 done
@@ -29,11 +34,11 @@ install -d -m 700 "$target/cache"
 stage=$(mktemp -d "$target/.install.XXXXXX")
 trap 'rm -rf "$stage"' EXIT
 readonly base="https://raw.githubusercontent.com/nerdicom/regcount/$revision/infra/vps/czds"
-for file in zone.py limits.py database.py regcount-czds.py schema.sql SHA256SUMS; do
+for file in zone.py limits.py database.py automation.py regcount-czds.py schema.sql SHA256SUMS; do
   curl --proto '=https' --tlsv1.2 -fsS --connect-timeout 20 --max-time 120 "$base/$file" -o "$stage/$file"
 done
 (cd "$stage" && sha256sum --check --strict SHA256SUMS)
-python3 -m py_compile "$stage/zone.py" "$stage/limits.py" "$stage/database.py" "$stage/regcount-czds.py"
+python3 -m py_compile "$stage/zone.py" "$stage/limits.py" "$stage/database.py" "$stage/automation.py" "$stage/regcount-czds.py"
 rm -rf "$stage/__pycache__"
 psql=(docker compose -f "$root/compose.yaml" exec -T db psql -X -U regcount_admin -d regcount -v ON_ERROR_STOP=1 -Atq)
 existing=$("${psql[@]}" -c "SELECT (SELECT count(*) FROM pg_namespace WHERE nspname='domain_index') || ':' || (SELECT count(*) FROM pg_roles WHERE rolname='regcount_ingest');")
@@ -61,12 +66,12 @@ fi
 readonly release="$target/release-$revision"
 if [[ -e "$release" || -L "$release" ]]; then
   [[ -d "$release" && ! -L "$release" ]] || fail 'Unexpected release path.'
-  for file in zone.py limits.py database.py regcount-czds.py schema.sql SHA256SUMS; do
+  for file in zone.py limits.py database.py automation.py regcount-czds.py schema.sql SHA256SUMS; do
     cmp -s "$stage/$file" "$release/$file" || fail 'Existing release differs; nothing replaced.'
   done
 else
   install -d -m 700 "$stage/release"
-  for file in zone.py limits.py database.py regcount-czds.py schema.sql SHA256SUMS; do
+  for file in zone.py limits.py database.py automation.py regcount-czds.py schema.sql SHA256SUMS; do
     install -m 600 "$stage/$file" "$stage/release/$file"
   done
   mv "$stage/release" "$release"
@@ -75,8 +80,12 @@ ln -s "release-$revision" "$stage/app"
 mv -Tf "$stage/app" "$target/app"
 install -m 755 "$stage/launcher" /usr/local/bin/regcount-czds
 printf '%s\n' "$revision" > "$target/revision"
-printf '\nCZDS pilot installed. No zone files downloaded; no schedule enabled.\n'
-if [[ -f "$target/credentials.json" ]]; then
+printf '\nCZDS importer installed. Existing data and credentials preserved.\n'
+if [[ "$automate" == --automate ]]; then
+  # Release the installer lock before the command takes that same lock.
+  exec 9>&-
+  /usr/local/bin/regcount-czds automate
+elif [[ -f "$target/credentials.json" ]]; then
   printf 'Existing credentials, data and download timers preserved.\nNext: regcount-czds capacity app --profile medium\n'
 else
   printf 'Next: regcount-czds configure\nThen: regcount-czds approved\n'
