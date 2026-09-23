@@ -1,4 +1,5 @@
 'use client';
+import { AccountLink } from '@/components/account-controls';
 import {useCallback,useEffect,useRef,useState,type FormEvent} from 'react';
 import {ArrowDown,ArrowDownUp,ArrowRight,ArrowUpRight,Check,ChevronRight,Copy,Download,Globe2,Info,Layers3,ListFilter,ListTree,LoaderCircle,Search,ShieldCheck,Sparkles,X} from 'lucide-react';
 import {Tabs,TabsList,TabsTrigger,TabsContent} from '@/components/ui/tabs';
@@ -51,7 +52,7 @@ export default function RegCount(){
  <header className="site-header"><div className="header-inner">
   <a className="brand" href="/" aria-label="RegCount home"><img src="/regcount-logo.png" alt="" width="56" height="56"/><span>Reg<span className="brand-count">Count</span><b>.</b></span></a>
   <TabsList className="main-nav" aria-label="Research tools"><TabsTrigger value="search"><Search size={17}/>Domain search</TabsTrigger><TabsTrigger value="bulk"><Layers3 size={17}/>Bulk search</TabsTrigger></TabsList>
-  <button className="header-info" onClick={()=>setInfoOpen(true)}><Info size={17}/><span>About the data</span></button>
+  <div className="header-actions"><button className="header-info" onClick={()=>setInfoOpen(true)}><Info size={17}/><span>About the data</span></button><AccountLink/></div>
  </div></header>
  <div className="preview-strip"><div><span className="preview-label">{source==='demo'?'PREVIEW':'DATA'}</span><span>{source==='demo'?'Explore sample data. Live registration data isn’t connected yet.':'Registration data by dotDB. Counts reflect the provider’s index.'}</span><button onClick={()=>setInfoOpen(true)}>Learn more <ArrowUpRight size={14}/></button></div></div>
  <main id="main" className="workspace">
