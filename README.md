@@ -16,19 +16,19 @@ Country-code classification uses a two-character final DNS label, including .ai,
 
 This repository is a standard Next.js application for Node.js hosting. The earlier private preview used Cloudflare; this GitHub version no longer requires that runtime.
 
-Requires Node.js 22.13 or newer and pnpm 11.25.0:
+Requires Node.js 22.13 or newer and npm (included with Node.js):
 
 ```sh
-pnpm install --frozen-lockfile
+npm ci
 cp .env.example .env
-pnpm dev
+npm run dev
 ```
 
 The local server runs on port 3000. For a production build:
 
 ```sh
-pnpm build
-pnpm start
+npm run build
+npm start
 ```
 
 The server binds to `0.0.0.0` and uses `PORT` when provided (otherwise 3000). Registration-provider settings are read from server-side `process.env` at runtime.
@@ -44,13 +44,15 @@ Use Hostinger **Node.js Web App** deployment with GitHub, rather than the PHP/st
 | Framework | Next.js (server-side) |
 | Node.js | 22.x or 24.x |
 | Root directory | `./` |
-| Package manager | pnpm |
-| Install command, if requested | `pnpm install --frozen-lockfile` |
-| Build command | `pnpm build` |
+| Package manager | npm |
+| Install command, if requested | `npm ci` |
+| Build command | `npm run build` |
 | Build output directory | `.next` |
-| Start command, if requested | `pnpm start` |
+| Start command, if requested | `npm start` |
 
 Leave `REGCOUNT_LIVE_ENABLED=false` while reviewing sample data. No API key or database is needed in demo mode. Configure live-provider credentials in Hostinger's Environment Variables, never in GitHub.
+
+If the log reports a missing `corepack/.../pnpm/.../bin/pnpm.cjs`, change Hostinger's package manager to **npm** and its build command to **npm run build**. This repository uses `package-lock.json` and does not require pnpm or Corepack.
 
 After changing deployment settings, redeploy the latest commit. Hostinger creates the routing from the domain to its Node process. If a successful Node deployment still returns 403, inspect its deployment/runtime logs and the generated `public_html/.htaccess` routing. Source files alone in `public_html` do not run this application.
 
@@ -60,7 +62,9 @@ No customer accounts or paid plans are implied. Noindex is enabled while the dat
 
 ## Verification
 
-`pnpm build` compiles the production Next.js server and checks TypeScript. Then run `pnpm test:smoke` to verify the homepage, logo, JS/CSS assets, single/bulk search, public Host routing behind a proxy, cross-origin rejection, and live mode without a key. Tests use local demo data and do not call dotDB.
+The npm migration was verified with a clean `npm ci`, production build, and HTTP smoke tests on Node.js 22.18.0 with npm 10.9.3.
+
+`npm run build` compiles the production Next.js server and checks TypeScript. Then run `npm run test:smoke` to verify the homepage, logo, JS/CSS assets, single/bulk search, public Host routing behind a proxy, cross-origin rejection, and live mode without a key. Tests use local demo data and do not call dotDB.
 
 
 TypeScript passed. Desktop and a 390px responsive frame were checked in the browser. Search normalization, extension filters, unknown-name null results, bulk deduplication, invalid rows, data explanations, and exported CSV contents were verified. The CSV export retains sample labels and escapes formula-like cell values. WebMCP actions are feature-detected, but the QA browser did not expose modelContext, so that optional integration could not be exercised. Live provider responses require a licensed API key and have not been integration-tested.
