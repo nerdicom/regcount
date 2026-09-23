@@ -19,7 +19,7 @@ export function SearchContent({ bulk = false }: { bulk?: boolean }) {
         ['Can I export the comparison?', 'Yes. The CSV includes each normalized keyword, its count, the data source, and any row note. Sample exports remain labeled as illustrative data.'],
         ['Can I inspect the extensions behind a count?', 'Yes. Select a name in the comparison to open its individual search. The extension view includes category filters and a suffix filter.'],
       ] : [
-        ['Does RegCount currently show live registration data?', 'The public preview uses labeled sample data until a live provider is connected. Read the source label on each response. Sample counts do not establish actual registrations.'],
+        ['Does RegCount currently show live registration data?', 'Read the source label on each response. SAMPLE DATA is illustrative. CZDS SNAPSHOTS uses imported DNS zones and lists the covered extensions and download times. These snapshots can omit registered names and are not availability checks.'],
         ['Does a missing extension mean a domain is available?', 'No. A registration index can have coverage gaps or delayed updates. Check the specific domain with a registrar or the relevant registration-data service before relying on its status.'],
         ['Is an extension count a domain appraisal?', 'No. The count describes coverage in a source. It does not establish traffic, revenue, ownership, or a sale price.'],
         ['What should I type into the search?', 'Start with a keyword such as cypress. A domain such as cypress.com is normalized to the name. For inputs with subdomains, enter the underlying keyword directly.'],

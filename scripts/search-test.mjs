@@ -8,17 +8,18 @@ import ts from 'typescript';
 
 const temporary = await mkdtemp(join(tmpdir(), 'regcount-search-'));
 const nativeFetch = globalThis.fetch;
-const originalSettings = { REGCOUNT_LIVE_ENABLED: process.env.REGCOUNT_LIVE_ENABLED, DOTDB_API_KEY: process.env.DOTDB_API_KEY };
+const originalSettings = { REGCOUNT_LIVE_ENABLED: process.env.REGCOUNT_LIVE_ENABLED, REGCOUNT_DATA_SOURCE: process.env.REGCOUNT_DATA_SOURCE, DOTDB_API_KEY: process.env.DOTDB_API_KEY };
 const calls = [];
 const row = (name, suffixes = ['com', 'net']) => ({ name, count: suffixes.length, suffixes });
 try {
-  for (const name of ['domains', 'registration-provider']) {
+  for (const name of ['domains', 'provider-error', 'czds-provider', 'registration-provider']) {
     const source = await readFile(new URL(`../lib/${name}.ts`, import.meta.url), 'utf8');
     const compiled = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }).outputText;
-    await writeFile(join(temporary, `${name}.mjs`), compiled.replace("from './domains'", "from './domains.mjs'"));
+    await writeFile(join(temporary, `${name}.mjs`), compiled.replace(/from '(\.\/[^']+)'/g, "from '$1.mjs'"));
   }
   const { searchRegistrations } = await import(pathToFileURL(join(temporary, 'registration-provider.mjs')).href);
   process.env.REGCOUNT_LIVE_ENABLED = 'true';
+  process.env.REGCOUNT_DATA_SOURCE = 'dotdb';
   process.env.DOTDB_API_KEY = 'local-test-key';
   globalThis.fetch = async (input, options) => {
     const url = new URL(input);

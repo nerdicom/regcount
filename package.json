@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test:smoke": "node scripts/smoke-test.mjs",
     "test:search": "node scripts/search-test.mjs",
+    "test:czds": "node scripts/czds-test.mjs",
     "test:auth": "node scripts/auth-test.mjs",
     "test:seo": "node scripts/seo-test.mjs"
   },

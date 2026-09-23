@@ -1,0 +1,15 @@
+{$REGCOUNT_SEARCH_HOST} {
+  header {
+    -Server
+    X-Content-Type-Options nosniff
+    Strict-Transport-Security "max-age=31536000"
+  }
+  request_body {
+    max_size 20KB
+  }
+  reverse_proxy api:8787 {
+    transport http {
+      response_header_timeout 12s
+    }
+  }
+}

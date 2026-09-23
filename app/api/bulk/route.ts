@@ -1,5 +1,6 @@
 import {dataMode,searchRegistrations} from '@/lib/registration-provider';
 import {normalizeQuery,type BulkRow} from '@/lib/domains';
+import {bulkCZDS} from '@/lib/czds-provider';
 export async function POST(request:Request){
  // Next.js may use an internal URL behind the hosting proxy. The Host header
  // retains the public request host, including its port when one is present.
@@ -15,6 +16,10 @@ export async function POST(request:Request){
  if(!Array.isArray(payload?.queries)||!payload.queries.length||payload.queries.length>50||payload.queries.some((q:unknown)=>typeof q!=='string'))return Response.json({error:'Provide between 1 and 50 names.'},{status:400});
  const source=dataMode(),results:BulkRow[]=[],queries:string[]=[],seen=new Set<string>();
  for(const value of payload.queries as string[]){try{const query=normalizeQuery(value);if(!seen.has(query)){seen.add(query);queries.push(query);}}catch(error){if(!seen.has(value)){seen.add(value);results.push({query:value.slice(0,253),total:null,source,suffixes:[],error:error instanceof Error?error.message:'Invalid name'});}}}
+ if(source==='czds'){
+  try{const batch=queries.length?await bulkCZDS(queries):{results:[],coverage:undefined};return Response.json({source,results:[...results,...batch.results],coverage:batch.coverage},{headers:{'Cache-Control':'private, no-store'}});}
+  catch{return Response.json({error:'The domain index is temporarily unavailable. Please try again.'},{status:503,headers:{'Cache-Control':'private, no-store'}});}
+ }
  for(let i=0;i<queries.length;i+=3){const batch=await Promise.all(queries.slice(i,i+3).map(async (query): Promise<BulkRow> =>{try{const result=await searchRegistrations(query);return {query,total:result.total,source:result.source,suffixes:result.suffixes,...(result.total===null?{error:'No sample data for this name'}:{})};}catch(error){return {query,total:null,source,suffixes:[],error:error instanceof Error?error.message:'Search failed'};}}));results.push(...batch);}
  return Response.json({source,results},{headers:{'Cache-Control':'private, no-store'}});
 }

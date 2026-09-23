@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { ArrowDown, ArrowUp, ArrowUpRight, Check, Copy, Download, Info, ListFilter } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { csvCell, extensionKind, SEARCH_POSITIONS, type SearchResult } from '@/lib/domains';
+import { csvCell, extensionKind, SEARCH_POSITIONS, sourceLabel as dataSourceLabel, type SearchResult } from '@/lib/domains';
+import { CoverageNote } from '@/components/coverage-note';
 
 type ResultRow = {
   name: string;
@@ -46,7 +47,7 @@ export function SearchResults({ result, onSelectName }: { result: SearchResult; 
       .map(row => ({ ...row, exact: false })),
   ];
   const unknownActivity = rows.some(row => activeCount(row.activeCount, row.count) === null);
-  const sourceLabel = result.source === 'demo' ? 'ILLUSTRATIVE SAMPLE — NOT VERIFIED' : 'dotDB';
+  const sourceLabel = dataSourceLabel(result.source);
 
   function exportResults() {
     const exported: (string | number | null)[][] = view === 'overview'
@@ -56,6 +57,7 @@ export function SearchResults({ result, onSelectName }: { result: SearchResult; 
           row.suffixes.filter(matchesFilter).map(suffix => `.${suffix}`).join(' '), sourceLabel, hasFilter ? 'Yes' : 'No', positionLabel])]
       : [['Keyword', 'Domain', 'Extension', 'Type', 'Data source', 'Keyword position'],
         ...exactSuffixes.map(suffix => [result.query, `${result.query}.${suffix}`, `.${suffix}`, extensionKind(suffix), sourceLabel, positionLabel])];
+    if(result.coverage){exported[0].push('Covered extensions','Snapshot download times','Missing priority extensions');for(const row of exported.slice(1))row.push(result.coverage.zones.map(z=>'.'+z.tld).join(' '),result.coverage.zones.map(z=>'.'+z.tld+' '+z.downloadedAt).join('; '),result.coverage.requiredMissing.map(t=>'.'+t).join(' '));}
     const blob = new Blob(['\uFEFF' + exported.map(row => row.map(csvCell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -79,12 +81,12 @@ export function SearchResults({ result, onSelectName }: { result: SearchResult; 
   return <>
     <div className="results-heading">
       <div><span className="eyebrow">THE NAME AT A GLANCE</span><h2>Results for <span>{result.query}<b>.</b></span></h2></div>
-      <span className="sample-badge">{result.source === 'demo' ? 'SAMPLE DATA' : 'DOTDB DATA'}</span>
+      <span className="sample-badge">{result.source === 'demo' ? 'SAMPLE DATA' : result.source === 'czds' ? 'CZDS SNAPSHOTS' : 'DOTDB DATA'}</span>
     </div>
     <dl className="results-metrics" aria-label="Search summary">
       <div className="metric-primary"><dt>Exact-match count</dt><dd>{total === null ? '—' : total.toLocaleString()}</dd><dd className="metric-detail">{total === null ? 'No exact-name sample' : `Extensions for ${result.query}`}</dd></div>
       <div><dt>Active websites</dt><dd>{active === null ? '—' : active.toLocaleString()}</dd><dd className="metric-detail">{active === null ? 'Activity not checked' : 'Verified active exact matches'}</dd></div>
-      <div><dt>Related names shown</dt><dd>{result.related.length.toLocaleString()}</dd><dd className="metric-detail">{result.relatedPartial ? 'More names exist in the source' : 'Separate from your exact count'}</dd></div>
+      <div><dt>Related names shown</dt><dd>{result.relatedPartial&&!result.related.length?'—':result.related.length.toLocaleString()}</dd><dd className="metric-detail">{result.relatedPartial ? 'Limited results · see note below' : 'Separate from your exact count'}</dd></div>
     </dl>
     <div className="results-coverage">
       <span>Keyword position: <strong>{positionLabel}</strong></span>
@@ -94,6 +96,8 @@ export function SearchResults({ result, onSelectName }: { result: SearchResult; 
       {total !== null && result.suffixes.length < total && <span className="coverage-warning">The source returned a partial extension list.</span>}
     </div>
     {total === null && <p className="results-filter-note">{result.message}</p>}
+    {result.relatedMessage&&<p className="results-filter-note" role="status">{result.relatedMessage}</p>}
+    {result.coverage&&<CoverageNote coverage={result.coverage}/>}
     <Tabs value={view} onValueChange={setView} className="result-tabs">
       <div className="overview-toolbar">
         <TabsList variant="line" className="result-nav">

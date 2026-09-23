@@ -3,6 +3,7 @@ import RegCount from '@/components/regcount';
 import { SearchContent } from '@/components/search-content';
 import { StructuredData } from '@/components/structured-data';
 import { pageMetadata, SITE_URL, type SearchParams } from '@/lib/seo';
+import { dataMode } from '@/lib/registration-provider';
 
 export async function generateMetadata({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
@@ -10,7 +11,7 @@ export async function generateMetadata({ searchParams }: { searchParams: SearchP
 }
 export default function Home() {
   return <>
-    <RegCount promotion={<SponsorSpot/>}><SearchContent/></RegCount>
+    <RegCount initialSource={dataMode()} promotion={<SponsorSpot/>}><SearchContent/></RegCount>
     <StructuredData value={{ '@context': 'https://schema.org', '@graph': [
       { '@type': 'Organization', '@id': `${SITE_URL}/#organization`, name: 'RegCount', url: SITE_URL, logo: `${SITE_URL}/regcount-logo.png` },
       { '@type': 'WebSite', '@id': `${SITE_URL}/#website`, name: 'RegCount', url: SITE_URL, publisher: { '@id': `${SITE_URL}/#organization` }, inLanguage: 'en' },

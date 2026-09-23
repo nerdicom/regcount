@@ -1,0 +1,52 @@
+name: regcount-search
+services:
+  api:
+    build: ./app
+    restart: unless-stopped
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 384m
+    cpus: 1.0
+    pids_limit: 80
+    ports: ["127.0.0.1:8787:8787"]
+    secrets: [search_db_password, search_api_token]
+    networks: [database, api_private]
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:8787/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: "3"}
+  proxy:
+    image: caddy:2-alpine
+    profiles: [public]
+    restart: unless-stopped
+    environment:
+      REGCOUNT_SEARCH_HOST: ${REGCOUNT_SEARCH_HOST:-localhost}
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./app/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [api_private, edge]
+    mem_limit: 192m
+    cpus: 0.5
+    depends_on:
+      api: {condition: service_healthy}
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: "3"}
+secrets:
+  search_db_password: {file: ./secrets/db-password}
+  search_api_token: {file: ./secrets/api-token}
+volumes:
+  caddy_data:
+  caddy_config:
+networks:
+  database: {external: true, name: regcount-database}
+  api_private: {internal: true}
+  edge:

@@ -4,6 +4,13 @@ A responsive domain registration research application with exact-name search, ex
 
 ## Data mode
 
+The VPS connection is prepared in [the CZDS search service](infra/vps/search/README.md).
+It adds a protected HTTPS API, a read-only database role, bulk exact-name queries,
+bounded keyword matching, and coverage/download-time labels in the website and CSV.
+Set `REGCOUNT_DATA_SOURCE=czds` and its two private connection variables only after
+the VPS install and HTTPS checks pass. `REGCOUNT_LIVE_ENABLED` remains the switch.
+`npm run test:czds` validates the website adapter without real credentials.
+
 The initial release uses explicitly labeled illustrative sample data. Counts and extension lists in demo mode are not registration facts. An unknown sample returns null, never a fabricated zero. Demo flags are carried into CSV exports and agent tools.
 
 A server-side dotDB v2 adapter is implemented in lib/registration-provider.ts. It has not been tested with an actual key. Before enabling it, confirm that your provider agreement allows displaying data in this service. Set REGCOUNT_LIVE_ENABLED=true and DOTDB_API_KEY as a server secret. Never expose the key to the browser. These same keys are documented in .env.example; hosted values must be set through the hosting environment, not committed.
