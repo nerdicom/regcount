@@ -12,7 +12,8 @@
     "lint": "eslint . --ignore-pattern .next",
     "typecheck": "tsc --noEmit",
     "test:smoke": "node scripts/smoke-test.mjs",
-    "test:auth": "node scripts/auth-test.mjs"
+    "test:auth": "node scripts/auth-test.mjs",
+    "test:seo": "node scripts/seo-test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",

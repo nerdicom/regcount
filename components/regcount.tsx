@@ -1,4 +1,8 @@
 'use client';
+import Link from 'next/link';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { SiteFooter } from '@/components/site-footer';
 import { AccountLink } from '@/components/account-controls';
 import {useCallback,useEffect,useRef,useState,type FormEvent} from 'react';
 import {ArrowDown,ArrowDownUp,ArrowRight,ArrowUpRight,Check,ChevronRight,Copy,Download,Globe2,Info,Layers3,ListFilter,ListTree,LoaderCircle,Search,ShieldCheck,Sparkles,X} from 'lucide-react';
@@ -10,17 +14,18 @@ import {demoResult,extensionKind,normalizeQuery,SAMPLE_NAMES,csvCell,type Search
 
 function downloadCsv(filename:string,rows:(string|number|null)[][]){const blob=new Blob(['\uFEFF'+rows.map(row=>row.map(csvCell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 type AgentTool={name:string;title:string;description:string;inputSchema:object;annotations:object;execute:(input:unknown)=>Promise<unknown>};
-export default function RegCount(){
- const [view,setView]=useState('search'),[input,setInput]=useState('cypress'),[result,setResult]=useState<SearchResult>(demoResult('cypress'));
+export default function RegCount({initialView='search',children}:{initialView?:'search'|'bulk';children?:React.ReactNode}){
+ const router=useRouter();
+ const [view,setView]=useState(initialView),[input,setInput]=useState('cypress'),[result,setResult]=useState<SearchResult>(demoResult('cypress'));
  const [loading,setLoading]=useState(false),[error,setError]=useState(''),[kind,setKind]=useState('all'),[suffixFilter,setSuffixFilter]=useState('');
  const [infoOpen,setInfoOpen]=useState(false),[copied,setCopied]=useState(false),[resultView,setResultView]=useState('extensions');
  const [bulkInput,setBulkInput]=useState(''),[bulkRows,setBulkRows]=useState<BulkRow[]|null>(null),[bulkLoading,setBulkLoading]=useState(false),[bulkError,setBulkError]=useState(''),[sortDesc,setSortDesc]=useState(true);
  const [source,setSource]=useState<'demo'|'dotdb'>('demo');
  const inputRef=useRef<HTMLInputElement>(null),requestRef=useRef<AbortController|null>(null),bulkRef=useRef<AbortController|null>(null);
- const search=useCallback(async(term:string)=>{
+ const search=useCallback(async(term:string,updateUrl=true)=>{
   const query=normalizeQuery(term);requestRef.current?.abort();const controller=new AbortController();requestRef.current=controller;
   setInput(query);setLoading(true);setError('');setKind('all');setSuffixFilter('');setResultView('extensions');
-  try{const response=await fetch(`/api/search?q=${encodeURIComponent(query)}`,{signal:controller.signal});const data=await response.json() as SearchResult & {error?:string};if(!response.ok)throw new Error(data.error||'Search could not be completed. Please try again.');setResult(data);setSource(data.source);const url=new URL(window.location.href);url.searchParams.set('q',query);window.history.replaceState({},'',url);return data as SearchResult;}
+  try{const response=await fetch(`/api/search?q=${encodeURIComponent(query)}`,{signal:controller.signal});const data=await response.json() as SearchResult & {error?:string};if(!response.ok)throw new Error(data.error||'Search could not be completed. Please try again.');setResult(data);setSource(data.source);if(updateUrl){const url=new URL(window.location.href);url.searchParams.set('q',query);window.history.replaceState({},'',url);}return data as SearchResult;}
   catch(err){if(controller.signal.aborted)return null;setError(err instanceof Error?err.message:'Something went wrong. Please try again.');return null;}
   finally{if(!controller.signal.aborted)setLoading(false);}
  },[]);
@@ -31,7 +36,7 @@ export default function RegCount(){
   catch(err){if(controller.signal.aborted)return null;setBulkError(err instanceof Error?err.message:'Something went wrong.');return null;}
   finally{if(!controller.signal.aborted)setBulkLoading(false);}
  },[]);
- useEffect(()=>{search(new URLSearchParams(window.location.search).get('q')||'cypress').catch(err=>setError(err.message));function shortcut(e:KeyboardEvent){if(e.key==='/'&&!['INPUT','TEXTAREA'].includes((e.target as HTMLElement)?.tagName)&&!(e.target as HTMLElement)?.isContentEditable){e.preventDefault();setView('search');setTimeout(()=>inputRef.current?.focus(),0);}}window.addEventListener('keydown',shortcut);return()=>{window.removeEventListener('keydown',shortcut);requestRef.current?.abort();bulkRef.current?.abort();};},[search]);
+ useEffect(()=>{if(initialView==='search')search(new URLSearchParams(window.location.search).get('q')||'cypress',false).catch(err=>setError(err.message));function shortcut(e:KeyboardEvent){if(e.key==='/'&&!['INPUT','TEXTAREA'].includes((e.target as HTMLElement)?.tagName)&&!(e.target as HTMLElement)?.isContentEditable){e.preventDefault();if(initialView==='bulk'){router.push('/');return;}setView('search');setTimeout(()=>inputRef.current?.focus(),0);}}window.addEventListener('keydown',shortcut);return()=>{window.removeEventListener('keydown',shortcut);requestRef.current?.abort();bulkRef.current?.abort();};},[search,initialView,router]);
  useEffect(()=>{
   const context=(document as Document & {modelContext?:{registerTool:(tool:AgentTool,options:{signal:AbortSignal})=>unknown}}).modelContext;if(!context?.registerTool)return;const lifecycle=new AbortController();
   const register=(tool:AgentTool)=>{try{Promise.resolve(context.registerTool(tool,{signal:lifecycle.signal})).catch(()=>{});}catch{}};
@@ -40,28 +45,28 @@ export default function RegCount(){
   return()=>lifecycle.abort();
  },[runBulk,search]);
  function submit(e:FormEvent){e.preventDefault();search(input).catch(err=>setError(err.message));}
- function selectName(name:string){setView('search');search(name).catch(err=>setError(err.message));}
+ function selectName(name:string){if(initialView==='bulk'){router.push(`/?q=${encodeURIComponent(name)}`);return;}setView('search');search(name).catch(err=>setError(err.message));}
  const generic=result.suffixes.filter(s=>extensionKind(s)==='generic').length,country=result.suffixes.length-generic;
  const filtered=result.suffixes.filter(s=>(kind==='all'||extensionKind(s)===kind)&&s.includes(suffixFilter.toLowerCase().replace(/^\./,'')));
  const sorted=[...(bulkRows||[])].sort((a,b)=>a.total===null?(b.total===null?0:1):b.total===null?-1:(sortDesc?-1:1)*(a.total-b.total));
  const bulkCount=bulkInput.split(/[\s,;]+/).filter(Boolean).length;
  async function copyDomains(){try{await navigator.clipboard.writeText(filtered.map(s=>`${result.query}.${s}`).join('\n'));setCopied(true);setTimeout(()=>setCopied(false),2000);}catch{setError('Copy was not available in this browser. Please use Download CSV.');}}
  function exportResults(){downloadCsv(`regcount-${result.query}-${result.source}.csv`,[['Keyword','Domain','Extension','Type','Data source'],...filtered.map(s=>[result.query,`${result.query}.${s}`,`.${s}`,extensionKind(s),result.source==='demo'?'ILLUSTRATIVE SAMPLE — NOT VERIFIED':'dotDB'])]);}
- return <Tabs value={view} onValueChange={setView} className="site-shell">
+ return <div className="site-shell">
  <a href="#main" className="skip-link">Skip to search</a>
  <header className="site-header"><div className="header-inner">
-  <a className="brand" href="/" aria-label="RegCount home"><img src="/regcount-logo.png" alt="" width="56" height="56"/><span>Reg<span className="brand-count">Count</span><b>.</b></span></a>
-  <TabsList className="main-nav" aria-label="Research tools"><TabsTrigger value="search"><Search size={17}/>Domain search</TabsTrigger><TabsTrigger value="bulk"><Layers3 size={17}/>Bulk search</TabsTrigger></TabsList>
+  <Link className="brand" href="/" aria-label="RegCount home"><Image src="/regcount-logo.png" alt="" width={56} height={56}/><span>Reg<span className="brand-count">Count</span><b>.</b></span></Link>
+  <nav className="main-nav tool-links" aria-label="Research tools"><Link href="/" aria-current={initialView==='search'?'page':undefined}><Search size={17}/>Domain search</Link><Link href="/bulk-domain-search" aria-current={initialView==='bulk'?'page':undefined}><Layers3 size={17}/>Bulk search</Link></nav>
   <div className="header-actions"><button className="header-info" onClick={()=>setInfoOpen(true)}><Info size={17}/><span>About the data</span></button><AccountLink/></div>
  </div></header>
  <div className="preview-strip"><div><span className="preview-label">{source==='demo'?'PREVIEW':'DATA'}</span><span>{source==='demo'?'Explore sample data. Live registration data isn’t connected yet.':'Registration data by dotDB. Counts reflect the provider’s index.'}</span><button onClick={()=>setInfoOpen(true)}>Learn more <ArrowUpRight size={14}/></button></div></div>
  <main id="main" className="workspace">
- <TabsContent value="search">
-  <div className="page-intro"><div className="eyebrow"><span className="tiny-bars" aria-hidden="true"><i/><i/><i/></span>DOMAIN INTELLIGENCE</div><h1>One name. Every possibility.</h1><p>See how widely a name is registered across domain extensions.</p></div>
+ {view==='search'&&<section aria-label="Domain search">
+  <div className="page-intro"><div className="eyebrow"><span className="tiny-bars" aria-hidden="true"><i/><i/><i/></span>DOMAIN INTELLIGENCE</div><h1>Domain registration counts, made clear.</h1><p>See how widely a name is registered across domain extensions.</p></div>
   <form className="search-form" onSubmit={submit}><Search className="search-icon" size={23}/><label className="sr-only" htmlFor="domain-search">Name or domain</label><input id="domain-search" ref={inputRef} value={input} onChange={e=>setInput(e.target.value)} placeholder="Enter a name or domain" autoComplete="off" spellCheck={false} maxLength={253}/><kbd aria-hidden="true">/</kbd><button className="primary-button search-button" disabled={loading} type="submit" aria-label="Count registrations">{loading?<LoaderCircle className="spinning" size={18}/>:<Search size={18}/>}<span>{loading?'Searching':'Count registrations'}</span></button></form>
   <div className="sample-picks"><span>Try a sample:</span>{['cypress','atlas','orbit','nova'].map(name=><button key={name} onClick={()=>selectName(name)}>{name}<ArrowUpRight size={12}/></button>)}<span className="search-hint">Exact names. Clear numbers.</span></div>
   {error&&<div className="error-message" role="alert"><Info size={18}/>{error}<button onClick={()=>setError('')} aria-label="Dismiss error"><X size={17}/></button></div>}
-  <div className="research-layout">
+  <div className="research-layout" data-nosnippet>
    <section className="results-panel" aria-label="Search results" aria-busy={loading}>
    {loading?<div className="loading-results" aria-live="polite"><LoaderCircle className="spinning"/><p>Looking up {input}…</p><Skeleton className="h-24 w-full"/><div className="skeleton-grid">{Array.from({length:12},(_,i)=><Skeleton key={i} className="h-16"/>)}</div></div>:result.total===null?<div className="empty-results"><div className="empty-symbol"><Search size={28}/></div><span className="sample-badge">SAMPLE COLLECTION</span><h2>No sample for “{result.query}”</h2><p>{result.message}</p><button className="primary-button" onClick={()=>selectName('cypress')}>Explore cypress <ArrowRight size={17}/></button></div>:<>
     <div className="result-summary"><div className="summary-name"><div className="eyebrow muted">EXACT-MATCH NAME <span className="sample-badge">{result.source==='demo'?'SAMPLE':'DOTDB'}</span></div><h2>{result.query}<b>.</b></h2><p>Same name. Different extensions.</p></div><div className="count-box"><span className="count-number">{result.total.toLocaleString()}</span><span>{result.source==='demo'?'sample extensions':'registered extensions'}</span></div></div>
@@ -79,22 +84,23 @@ export default function RegCount(){
    <aside className="research-sidebar">
     <div className="insight-card"><div className="card-icon"><Globe2 size={23}/></div><h3>A name’s bigger picture.</h3><p>One keyword can live across hundreds of extensions. Its registration count is one signal of how broadly it’s used.</p><div className="insight-note"><Info size={16}/><span>A research signal, not a valuation.</span></div></div>
     <div className="examples-card"><div className="aside-heading"><h3>Explore the samples</h3><Sparkles size={17}/></div>{SAMPLE_NAMES.filter(n=>n!==result.query).slice(0,4).map(name=><button className="sample-row" key={name} onClick={()=>selectName(name)}><span>{name}</span><span className="sample-row-count">{demoResult(name).total}<ChevronRight size={15}/></span></button>)}<p>Illustrative counts, not verified registrations.</p></div>
-    <button className="bulk-callout" onClick={()=>setView('bulk')}><span className="bulk-callout-icon"><Layers3 size={20}/></span><span><strong>A list to research?</strong><small>Compare names in bulk</small></span><ArrowRight size={18}/></button>
+    <Link className="bulk-callout" href="/bulk-domain-search"><span className="bulk-callout-icon"><Layers3 size={20}/></span><span><strong>A list to research?</strong><small>Compare names in bulk</small></span><ArrowRight size={18}/></Link>
    </aside>
   </div>
- </TabsContent>
- <TabsContent value="bulk">
-  <div className="page-intro"><div className="eyebrow"><Layers3 size={16}/>BULK RESEARCH</div><h1>Find the standouts in your list.</h1><p>Compare exact-match extension counts for up to 50 names at once.</p></div>
+ </section>}
+ {view==='bulk'&&<section aria-label="Bulk domain search">
+  <div className="page-intro"><div className="eyebrow"><Layers3 size={16}/>BULK RESEARCH</div><h1>Bulk domain search. One clear comparison.</h1><p>Compare exact-match extension counts for up to 50 names at once.</p></div>
   <div className="bulk-layout"><section className="bulk-input-panel"><div className="panel-title"><h2>Your names</h2><button onClick={()=>setBulkInput(SAMPLE_NAMES.join('\n'))}>Load sample list</button></div><label htmlFor="bulk-names">One name or domain per line</label><textarea id="bulk-names" value={bulkInput} onChange={e=>setBulkInput(e.target.value)} placeholder={'cypress\natlas.com\norbit.io'} spellCheck={false} maxLength={13000}/><div className="bulk-input-meta"><span>{bulkCount} / 50 names</span><button onClick={()=>{setBulkInput('');setBulkRows(null);setBulkError('');}} disabled={bulkLoading}>Clear</button></div><button className="primary-button bulk-submit" disabled={bulkLoading} onClick={()=>runBulk(bulkInput).catch(err=>setBulkError(err.message))}>{bulkLoading?<LoaderCircle className="spinning" size={18}/>:<Layers3 size={18}/>} {bulkLoading?'Comparing names…':'Compare registrations'}</button><p className="input-footnote">Duplicates are combined. Extensions are removed to compare the underlying names.</p></section>
-   <section className="bulk-results-panel" aria-busy={bulkLoading}><div className="panel-title"><h2>Comparison</h2>{bulkRows&&<button onClick={()=>downloadCsv(`regcount-comparison-${source}.csv`,[['Name','Extension count','Data source','Note'],...sorted.map(row=>[row.query,row.total,row.source==='demo'?'ILLUSTRATIVE SAMPLE — NOT VERIFIED':'dotDB',row.error||''])])}><Download size={16}/>Download CSV</button>}</div>
+   <section className="bulk-results-panel" aria-busy={bulkLoading} data-nosnippet><div className="panel-title"><h2>Comparison</h2>{bulkRows&&<button onClick={()=>downloadCsv(`regcount-comparison-${source}.csv`,[['Name','Extension count','Data source','Note'],...sorted.map(row=>[row.query,row.total,row.source==='demo'?'ILLUSTRATIVE SAMPLE — NOT VERIFIED':'dotDB',row.error||''])])}><Download size={16}/>Download CSV</button>}</div>
     {bulkError&&<div className="error-message" role="alert"><Info size={18}/>{bulkError}</div>}
     {bulkLoading?<div className="bulk-empty"><LoaderCircle className="spinning" size={28}/><h3>Counting across your list…</h3><p>Comparing names and collecting their extension counts.</p></div>:!bulkRows?<div className="bulk-empty"><div className="empty-symbol"><ListTree size={32}/></div><h3>Big picture. Side by side.</h3><p>Add your names to see which ones have the broadest reach across extensions.</p><button onClick={()=>{const text=SAMPLE_NAMES.join('\n');setBulkInput(text);runBulk(text).catch(err=>setBulkError(err.message));}}>Try a sample comparison <ArrowRight size={16}/></button></div>:<><Table className="bulk-table"><TableHeader><TableRow><TableHead>#</TableHead><TableHead>Name</TableHead><TableHead><button onClick={()=>setSortDesc(!sortDesc)}>Extensions {sortDesc?<ArrowDown size={14}/>:<ArrowDownUp size={14}/>}</button></TableHead><TableHead>Data</TableHead></TableRow></TableHeader><TableBody>{sorted.map((row,index)=><TableRow key={row.query}><TableCell className="rank">{index+1}</TableCell><TableCell><button className="domain-button" onClick={()=>selectName(row.query)}>{row.query}<ArrowUpRight size={13}/></button>{row.error&&<small className="row-error">{row.error}</small>}</TableCell><TableCell><span className="bulk-count">{row.total===null?'—':row.total}</span>{row.total!==null&&<span className="mini-bar" style={{width:`${Math.max(4,(row.total/Math.max(...sorted.map(r=>r.total||0),1))*64)}px`}}/>}</TableCell><TableCell><span className="sample-badge">{row.source==='demo'?'SAMPLE':'DOTDB'}</span></TableCell></TableRow>)}</TableBody></Table><div className="results-bottom"><span>{bulkRows.length} unique names · {source==='demo'?'Illustrative data only':'Provider-indexed registrations'}</span></div></>}
    </section>
   </div>
- </TabsContent>
+ </section>}
  <div className="data-note"><ShieldCheck size={17}/><p>{source==='demo'?'Sample counts demonstrate the product. They are not registration or availability checks.':'Counts reflect the provider’s index. A missing extension does not mean a domain is available.'}</p><button onClick={()=>setInfoOpen(true)}>How counts work <ArrowUpRight size={14}/></button></div>
+ {children}
  </main>
- <footer className="site-footer"><div><span className="footer-brand">RegCount<b>.</b></span><span>Built for domain people.</span></div><span>One name. The whole picture.</span></footer>
+ <SiteFooter/>
  <Dialog open={infoOpen} onOpenChange={setInfoOpen}><DialogContent className="data-dialog"><DialogHeader><div className="dialog-mark"><Globe2 size={25}/></div><DialogTitle>Know what you’re counting.</DialogTitle><DialogDescription>RegCount measures the number of distinct extensions found for an exact name in its data source.</DialogDescription></DialogHeader><div className="dialog-copy"><h3>{source==='demo'?'You’re viewing sample data':'Registration data by dotDB'}</h3><p>{source==='demo'?'These names, counts, and extension lists are illustrative. Explore search, filtering, bulk comparison, and exports. The examples have not been checked against actual registrations.':'Searches use dotDB’s index. Results can lag new registrations and depend on the extensions and domains covered by the provider.'}</p><h3>Exact matches, not related words</h3><p>A search for “cypress” counts cypress.com and cypress.net separately. getcypress.com belongs in related results and does not increase the exact-match count.</p><h3>Coverage has limits</h3><p>DNS visibility, country-code coverage, and update timing affect counts. This is not a live availability check. Country codes include .ai, .io, and .co.</p><h3>Multi-part extensions</h3><p>Suffixes are displayed as supplied by the source. For example, .uk and .co.uk may count separately.</p></div></DialogContent></Dialog>
- </Tabs>;
+ </div>;
 }

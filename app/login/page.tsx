@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
+import { PRIVATE_ROBOTS } from '@/lib/seo';
 import { redirect } from 'next/navigation';
 import { AuthShell } from '@/components/auth-shell';
 import { LoginForm } from '@/components/login-form';
 import { configuredProviders, getAuthSession, safeReturnUrl } from '@/lib/auth';
 
-export const metadata: Metadata = { title: 'Log in — RegCount' };
+export const metadata: Metadata = { title: 'Log in', robots: PRIVATE_ROBOTS };
 export const dynamic = 'force-dynamic';
 
 export default async function LoginPage({ searchParams }: {

@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { PRIVATE_ROBOTS } from '@/lib/seo';
 import { redirect } from 'next/navigation';
 import { Search, ShieldCheck } from 'lucide-react';
 import { AuthShell } from '@/components/auth-shell';
 import { SignOutButton } from '@/components/account-controls';
 import { getAuthSession } from '@/lib/auth';
 
-export const metadata: Metadata = { title: 'Your account — RegCount' };
+export const metadata: Metadata = { title: 'Your account', robots: PRIVATE_ROBOTS };
 export const dynamic = 'force-dynamic';
 
 export default async function AccountPage() {

@@ -58,7 +58,7 @@ After changing deployment settings, redeploy the latest commit. Hostinger create
 
 ## Branding and publishing
 
-Social sign-in is available once the OAuth providers below are configured. No paid plans are implemented. Noindex is enabled while the data connection is unfinished. Switch it deliberately when the service is ready to launch. DNS and Hostinger account settings are managed separately from this repository. Uploading source to GitHub alone does not start the hosted application.
+Social sign-in is available once the OAuth providers below are configured. No paid plans are implemented. Public tool and guide pages are indexable. Query results and account pages remain noindex; sample counts are excluded from snippets. See [the SEO guide](docs/SEO.md) for the page map, Search Console setup, and live-data publishing checklist. DNS and Hostinger account settings are managed separately from this repository. Uploading source to GitHub alone does not start the hosted application.
 
 ## Verification
 
