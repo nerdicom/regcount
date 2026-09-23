@@ -21,6 +21,6 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
       </section>
       <section className="auth-card">{children}</section>
     </main>
-    <footer className="auth-footer">RegCount · Domain registration intelligence</footer>
+    <footer className="auth-footer">RegCount · <Link href="/privacy">Privacy policy</Link> · <Link href="/data-deletion">Data deletion</Link></footer>
   </div>;
 }
