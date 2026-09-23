@@ -1,0 +1,2 @@
+import {searchRegistrations,ProviderError} from '@/lib/registration-provider';
+export async function GET(request:Request){try{const result=await searchRegistrations(new URL(request.url).searchParams.get('q')||'');return Response.json(result,{headers:{'Cache-Control':'private, no-store'}});}catch(error){return Response.json({error:error instanceof Error?error.message:'Search failed.'},{status:error instanceof ProviderError?error.status:400});}}
