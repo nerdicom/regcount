@@ -48,3 +48,10 @@ next-env.d.ts
 # Safe configuration template and generated compiler cache
 !.env.example
 *.tsbuildinfo
+
+# Private zone data and Python importer cache
+__pycache__/
+*.pyc
+*.zone
+*.zone.gz
+credentials.json
