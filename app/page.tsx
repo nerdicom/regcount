@@ -6,7 +6,7 @@ import { pageMetadata, SITE_URL, type SearchParams } from '@/lib/seo';
 
 export async function generateMetadata({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
-  return pageMetadata('Domain Registration Count & Extension Search', 'Explore domain registration counts and exact-name extension lists. Compare names, export results, and try RegCount’s clearly labeled sample-data preview.', '/', !('q' in params));
+  return pageMetadata('Domain Registration Count & Extension Search', 'Explore domain registration counts and exact-name extension lists. Compare names, export results, and try RegCount’s clearly labeled sample-data preview.', '/', !('q' in params || 'position' in params));
 }
 export default function Home() {
   return <>

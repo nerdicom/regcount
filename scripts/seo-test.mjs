@@ -81,7 +81,7 @@ try {
     }
   }
   for (const route of routes) assert.ok(linked.has(route), 'Missing crawlable link: ' + route);
-  for (const path of ['/?q=cypress', '/?q=does-not-exist', '/?q=', '/bulk-domain-search?q=atlas']) {
+  for (const path of ['/?q=cypress', '/?q=does-not-exist', '/?q=', '/?q=cypress&position=end', '/?position=beginning', '/bulk-domain-search?q=atlas']) {
     const res = await fetch(base + path);
     const html = await res.text();
     assert.equal(res.status, 200);

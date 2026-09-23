@@ -10,22 +10,23 @@ import {ArrowDown,ArrowDownUp,ArrowRight,ArrowUpRight,Check,Download,Globe2,Info
 import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@/components/ui/dialog';
 import {Table,TableBody,TableCell,TableHead,TableHeader,TableRow} from '@/components/ui/table';
 import {Skeleton} from '@/components/ui/skeleton';
-import {demoResult,normalizeQuery,SAMPLE_NAMES,csvCell,type SearchResult,type BulkRow} from '@/lib/domains';
+import {demoResult,normalizeQuery,parseSearchPosition,SEARCH_POSITIONS,SAMPLE_NAMES,csvCell,type SearchPosition,type SearchResult,type BulkRow} from '@/lib/domains';
 
 function downloadCsv(filename:string,rows:(string|number|null)[][]){const blob=new Blob(['\uFEFF'+rows.map(row=>row.map(csvCell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 type AgentTool={name:string;title:string;description:string;inputSchema:object;annotations:object;execute:(input:unknown)=>Promise<unknown>};
 export default function RegCount({initialView='search',promotion,children}:{initialView?:'search'|'bulk';promotion?:React.ReactNode;children?:React.ReactNode}){
  const router=useRouter();
  const [view,setView]=useState(initialView),[input,setInput]=useState('cypress'),[result,setResult]=useState<SearchResult>(demoResult('cypress'));
+ const [position,setPosition]=useState<SearchPosition>('any');
  const [loading,setLoading]=useState(false),[error,setError]=useState('');
  const [infoOpen,setInfoOpen]=useState(false);
  const [bulkInput,setBulkInput]=useState(''),[bulkRows,setBulkRows]=useState<BulkRow[]|null>(null),[bulkLoading,setBulkLoading]=useState(false),[bulkError,setBulkError]=useState(''),[sortDesc,setSortDesc]=useState(true);
  const [source,setSource]=useState<'demo'|'dotdb'>('demo');
  const inputRef=useRef<HTMLInputElement>(null),requestRef=useRef<AbortController|null>(null),bulkRef=useRef<AbortController|null>(null);
- const search=useCallback(async(term:string,updateUrl=true)=>{
+ const search=useCallback(async(term:string,requestedPosition:SearchPosition='any',updateUrl=true)=>{
   const query=normalizeQuery(term);requestRef.current?.abort();const controller=new AbortController();requestRef.current=controller;
-  setInput(query);setLoading(true);setError('');
-  try{const response=await fetch(`/api/search?q=${encodeURIComponent(query)}`,{signal:controller.signal});const data=await response.json() as SearchResult & {error?:string};if(!response.ok)throw new Error(data.error||'Search could not be completed. Please try again.');setResult(data);setSource(data.source);if(updateUrl){const url=new URL(window.location.href);url.searchParams.set('q',query);window.history.replaceState({},'',url);}return data as SearchResult;}
+  setInput(query);setPosition(requestedPosition);setLoading(true);setError('');
+  try{const params=new URLSearchParams({q:query,position:requestedPosition});const response=await fetch(`/api/search?${params}`,{signal:controller.signal});const data=await response.json() as SearchResult & {error?:string};if(!response.ok)throw new Error(data.error||'Search could not be completed. Please try again.');if(controller.signal.aborted)return null;setResult(data);setSource(data.source);if(updateUrl){const url=new URL(window.location.href);url.searchParams.set('q',query);if(requestedPosition==='any')url.searchParams.delete('position');else url.searchParams.set('position',requestedPosition);window.history.replaceState({},'',url);}return data as SearchResult;}
   catch(err){if(controller.signal.aborted)return null;setError(err instanceof Error?err.message:'Something went wrong. Please try again.');return null;}
   finally{if(!controller.signal.aborted)setLoading(false);}
  },[]);
@@ -36,16 +37,23 @@ export default function RegCount({initialView='search',promotion,children}:{init
   catch(err){if(controller.signal.aborted)return null;setBulkError(err instanceof Error?err.message:'Something went wrong.');return null;}
   finally{if(!controller.signal.aborted)setBulkLoading(false);}
  },[]);
- useEffect(()=>{if(initialView==='search')search(new URLSearchParams(window.location.search).get('q')||'cypress',false).catch(err=>setError(err.message));function shortcut(e:KeyboardEvent){if(e.key==='/'&&!['INPUT','TEXTAREA'].includes((e.target as HTMLElement)?.tagName)&&!(e.target as HTMLElement)?.isContentEditable){e.preventDefault();if(initialView==='bulk'){router.push('/');return;}setView('search');setTimeout(()=>inputRef.current?.focus(),0);}}window.addEventListener('keydown',shortcut);return()=>{window.removeEventListener('keydown',shortcut);requestRef.current?.abort();bulkRef.current?.abort();};},[search,initialView,router]);
+ useEffect(()=>{
+  let mounted=true;
+  // Defer initialization so cleanup can cancel it during React's development remount.
+  Promise.resolve().then(()=>{if(mounted&&initialView==='search'){const params=new URLSearchParams(window.location.search);return search(params.get('q')||'cypress',parseSearchPosition(params.get('position')),false);}}).catch(err=>{if(mounted)setError(err.message);});
+  function shortcut(e:KeyboardEvent){if(e.key==='/'&&!['INPUT','TEXTAREA'].includes((e.target as HTMLElement)?.tagName)&&!(e.target as HTMLElement)?.isContentEditable){e.preventDefault();if(initialView==='bulk'){router.push('/');return;}setView('search');setTimeout(()=>inputRef.current?.focus(),0);}}
+  window.addEventListener('keydown',shortcut);return()=>{mounted=false;window.removeEventListener('keydown',shortcut);requestRef.current?.abort();bulkRef.current?.abort();};
+ },[search,initialView,router]);
  useEffect(()=>{
   const context=(document as Document & {modelContext?:{registerTool:(tool:AgentTool,options:{signal:AbortSignal})=>unknown}}).modelContext;if(!context?.registerTool)return;const lifecycle=new AbortController();
   const register=(tool:AgentTool)=>{try{Promise.resolve(context.registerTool(tool,{signal:lifecycle.signal})).catch(()=>{});}catch{}};
-  register({name:'search_domain_registrations',title:'Search domain registrations',description:'Search and display exact-match extensions. source=demo means illustrative samples, not verified registrations.',inputSchema:{type:'object',properties:{query:{type:'string'}},required:['query'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:true},execute:async value=>{if(!value||typeof value!=='object'||typeof(value as {query?:unknown}).query!=='string')throw new Error('query must be a string');const query=normalizeQuery((value as {query:string}).query);setView('search');const data=await search(query);if(!data)throw new Error('Search failed');await new Promise(resolve=>requestAnimationFrame(resolve));return {query:data.query,source:data.source,total:data.total,suffixes:data.suffixes,message:data.message};}});
+  register({name:'search_domain_registrations',title:'Search domain registrations',description:'Search and display exact-name extensions plus related names with the keyword in any position, at the beginning, or at the end. source=demo means illustrative samples, not verified registrations.',inputSchema:{type:'object',properties:{query:{type:'string'},position:{type:'string',enum:['any','beginning','end'],default:'any'}},required:['query'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:true},execute:async value=>{if(!value||typeof value!=='object'||typeof(value as {query?:unknown}).query!=='string')throw new Error('query must be a string');const query=normalizeQuery((value as {query:string}).query);const matchPosition=parseSearchPosition((value as {position?:unknown}).position);setView('search');const data=await search(query,matchPosition);if(!data)throw new Error('Search failed');await new Promise(resolve=>requestAnimationFrame(resolve));return {query:data.query,position:data.position,source:data.source,total:data.total,suffixes:data.suffixes,related:data.related,relatedPartial:data.relatedPartial,message:data.message};}});
   register({name:'compare_domain_registrations',title:'Compare domain registrations',description:'Compare and display up to 50 names. Sample results are labeled demo and are not verified registration facts.',inputSchema:{type:'object',properties:{queries:{type:'array',items:{type:'string'},minItems:1,maxItems:50}},required:['queries'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:true},execute:async value=>{const queries=(value as {queries?:unknown})?.queries;if(!Array.isArray(queries)||!queries.length||queries.length>50||queries.some(q=>typeof q!=='string'))throw new Error('queries must contain 1–50 strings');const text=queries.join('\n');setView('bulk');setBulkInput(text);const data=await runBulk(text);if(!data)throw new Error('Comparison failed');await new Promise(resolve=>requestAnimationFrame(resolve));return data;}});
   return()=>lifecycle.abort();
  },[runBulk,search]);
- function submit(e:FormEvent){e.preventDefault();search(input).catch(err=>setError(err.message));}
- function selectName(name:string){if(initialView==='bulk'){router.push(`/?q=${encodeURIComponent(name)}`);return;}setView('search');search(name).catch(err=>setError(err.message));}
+ function submit(e:FormEvent){e.preventDefault();search(input,position).catch(err=>setError(err.message));}
+ function changePosition(next:SearchPosition){setPosition(next);search(input,next).catch(err=>setError(err.message));}
+ function selectName(name:string){if(initialView==='bulk'){router.push(`/?${new URLSearchParams({q:name,position})}`);return;}setView('search');search(name,position).catch(err=>setError(err.message));}
  const sorted=[...(bulkRows||[])].sort((a,b)=>a.total===null?(b.total===null?0:1):b.total===null?-1:(sortDesc?-1:1)*(a.total-b.total));
  const bulkCount=bulkInput.split(/[\s,;]+/).filter(Boolean).length;
  return <div className="site-shell research-shell">
@@ -56,13 +64,17 @@ export default function RegCount({initialView='search',promotion,children}:{init
  {view==='search'&&<section aria-label="Domain search">
   <div className="search-hero"><div className="page-intro"><div className="eyebrow"><span className="tiny-bars" aria-hidden="true"><i/><i/><i/></span>DOMAIN REGISTRATION RESEARCH</div><h1>One name. <span>The bigger picture.</span></h1><p>Explore its reach. Compare extensions. Find your next great name.</p><div className="hero-benefits"><span><Check size={15}/>Exact-name search</span><span><Check size={15}/>Bulk comparison</span><span><Check size={15}/>CSV exports</span></div></div><Link className="hero-bulk-link" href="/bulk-domain-search"><Layers3 size={18}/><span>Have a shortlist?<strong>Compare names in bulk <ArrowRight size={14}/></strong></span></Link></div>
 
-  <form className="search-form" onSubmit={submit}><Search className="search-icon" size={23}/><label className="sr-only" htmlFor="domain-search">Name or domain</label><input id="domain-search" ref={inputRef} value={input} onChange={e=>setInput(e.target.value)} placeholder="Enter a name or domain" autoComplete="off" spellCheck={false} maxLength={253}/><kbd aria-hidden="true">/</kbd><button className="primary-button search-button" disabled={loading} type="submit" aria-label="Count registrations">{loading?<LoaderCircle className="spinning" size={18}/>:<Search size={18}/>}<span>{loading?'Searching':'Count registrations'}</span></button></form>
+  <form id="domain-search-form" className="search-form" onSubmit={submit}><Search className="search-icon" size={23}/><label className="sr-only" htmlFor="domain-search">Name or domain</label><input id="domain-search" ref={inputRef} value={input} onChange={e=>setInput(e.target.value)} placeholder="Enter a name or domain" autoComplete="off" spellCheck={false} maxLength={253}/><kbd aria-hidden="true">/</kbd><button className="primary-button search-button" disabled={loading} type="submit" aria-label="Count registrations">{loading?<LoaderCircle className="spinning" size={18}/>:<Search size={18}/>}<span>{loading?'Searching':'Count registrations'}</span></button></form>
+  <div className="search-match-options">
+   <fieldset className="search-position" aria-describedby="search-position-hint"><legend className="sr-only">Keyword position</legend>{SEARCH_POSITIONS.map(option=><label key={option.value} className={position===option.value?'selected':''}><input type="radio" name="position" form="domain-search-form" value={option.value} checked={position===option.value} onChange={()=>changePosition(option.value)}/><span>{option.label}</span></label>)}</fieldset>
+   <p id="search-position-hint">{SEARCH_POSITIONS.find(option=>option.value===position)?.description}</p>
+  </div>
   <div className="sample-picks"><span>Try a sample:</span>{['cypress','atlas','orbit','nova'].map(name=><button key={name} onClick={()=>selectName(name)}>{name}<ArrowUpRight size={12}/></button>)}<span className="search-hint">Exact names. Clear numbers.</span></div>
   {error&&<div className="error-message" role="alert"><Info size={18}/>{error}<button onClick={()=>setError('')} aria-label="Dismiss error"><X size={17}/></button></div>}
   {promotion}
   <div className="research-layout research-layout-wide" data-nosnippet>
    <section className="results-panel" aria-label="Search results" aria-busy={loading}>
-   {loading?<div className="loading-results" aria-live="polite"><LoaderCircle className="spinning"/><p>Looking up {input}…</p><Skeleton className="h-24 w-full"/><div className="skeleton-grid">{Array.from({length:12},(_,i)=><Skeleton key={i} className="h-16"/>)}</div></div>:result.total===null?<div className="empty-results"><div className="empty-symbol"><Search size={28}/></div><span className="sample-badge">SAMPLE COLLECTION</span><h2>No sample for “{result.query}”</h2><p>{result.message}</p><button className="primary-button" onClick={()=>selectName('cypress')}>Explore cypress <ArrowRight size={17}/></button></div>:<SearchResults key={`${result.source}-${result.query}-${result.fetchedAt}`} result={result} onSelectName={selectName}/>}
+   {loading?<div className="loading-results" aria-live="polite"><LoaderCircle className="spinning"/><p>Looking up {input}…</p><Skeleton className="h-24 w-full"/><div className="skeleton-grid">{Array.from({length:12},(_,i)=><Skeleton key={i} className="h-16"/>)}</div></div>:result.total===null&&!result.related.length?<div className="empty-results"><div className="empty-symbol"><Search size={28}/></div><span className="sample-badge">SAMPLE COLLECTION</span><h2>No sample for “{result.query}”</h2><p>{result.message}</p><button className="primary-button" onClick={()=>selectName('cypress')}>Explore cypress <ArrowRight size={17}/></button></div>:<SearchResults key={`${result.source}-${result.query}-${result.position}-${result.fetchedAt}`} result={result} onSelectName={selectName}/>}
    </section>
    <ResearchNextSteps/>
   </div>
