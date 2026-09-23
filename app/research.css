@@ -1,0 +1,156 @@
+/* Compact research workspace and clearly separated commercial placements. */
+.site-header.product-header { height: 72px; }
+.product-header .brand { font-size: 1.55rem; letter-spacing: -.9px; }
+.product-header .brand img { width: 45px; height: 45px; }
+.product-header .product-nav { gap: 28px; }
+.product-header .product-nav a { font-size: .8125rem; }
+.research-shell .workspace { max-width: 1380px; }
+.research-shell .search-hero { display: flex; justify-content: space-between; gap: 28px; padding: 30px 0 23px; }
+.research-shell .search-hero .eyebrow { font-size: .625rem; letter-spacing: 1.4px; }
+.research-shell .search-hero h1 { font-size: clamp(1.75rem, 3vw, 2.6rem); line-height: 1.18; letter-spacing: -1.55px; margin: 13px 0 9px; }
+.research-shell .search-hero .page-intro>p { font-size: .9375rem; line-height: 1.7; max-width: none; }
+.research-shell .hero-benefits { margin-top: 13px; font-size: .6875rem; gap: 18px; }
+.hero-bulk-link { display: flex; align-items: center; gap: 12px; color: #405772; font-size: .75rem; flex-shrink: 0; padding: 14px 0 14px 22px; border-left: 1px solid var(--border); }
+.hero-bulk-link>svg { color: #285cb1; }
+.hero-bulk-link strong { display: flex; align-items: center; gap: 8px; margin-top: 5px; color: #164c9e; font-size: .8125rem; font-weight: 650; }
+.hero-bulk-link:hover strong { text-decoration: underline; text-underline-offset: 4px; }
+.research-shell .search-form { min-height: 62px; border-radius: 10px; box-shadow: 0 3px 12px #17395a05; }
+.research-shell .search-button { height: 46px; }
+.research-shell .sample-picks { margin: 9px 0 18px; }
+.research-shell .results-panel { border-radius: 12px; box-shadow: 0 4px 18px #243e5904; }
+.research-shell .results-heading { padding: 20px 24px 15px; }
+.research-shell .results-heading h2 { font-size: 1.25rem; margin-top: 7px; }
+.research-shell .results-heading .eyebrow { font-size: .625rem; }
+.research-shell .results-metrics { margin: 0 24px 15px; border-radius: 8px; }
+.research-shell .results-metrics>div { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 12px; padding: 14px 18px; }
+.research-shell .results-metrics dd:not(.metric-detail) { grid-column: 2; grid-row: 1 / 3; font-size: 2rem; margin: 0; }
+.research-shell .results-metrics dt { font-size: .75rem; }
+.research-shell .results-metrics .metric-detail { grid-column: 1; color: #465a75; font-size: .6875rem; line-height: 1.5; }
+.research-shell .results-coverage { padding: 0 24px 17px; font-size: .6875rem; }
+.research-shell .overview-toolbar { padding: 0 24px; }
+.research-shell .overview-toolbar .result-nav { height: 49px!important; }
+.research-shell .result-nav [data-slot=tabs-trigger] { font-size: .8125rem; }
+.research-shell .results-export { min-height: 34px; padding: 6px 10px; font-size: .75rem; }
+.research-shell .overview-filters { padding: 13px 24px; }
+.research-shell .overview-filters .filter-buttons button { min-height: 36px; font-size: .75rem; }
+.research-shell .overview-filters .extension-filter { min-height: 36px; padding: 7px 10px; }
+.research-shell .name-results-table thead { background: #213851; }
+.research-shell .name-results-table thead th { padding-top: 12px; padding-bottom: 12px; }
+.research-shell .name-results-table tbody th, .research-shell .name-results-table tbody td { padding-top: 18px; padding-bottom: 18px; }
+.research-shell .suffix-tag { padding: 3px 7px; }
+.research-shell .activity-explanation { padding: 13px 24px; }
+.research-shell .bulk-intro { padding: 30px 0 0; margin-bottom: 22px; }
+.research-shell .bulk-intro h1 { font-size: 2.25rem; margin-top: 13px; }
+.research-shell .bulk-layout { margin-top: 18px; }
+.research-shell .data-note { padding: 18px 2px; }
+
+.sponsor-spot { display: flex; align-items: center; gap: 16px; padding: 17px 21px; margin-bottom: 18px; border: 1px solid #c5ced9; border-radius: 10px; background: #e0e7ee; }
+.sponsor-mark { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; background: #243c59; color: #e9f0fb; border-radius: 10px; }
+.sponsor-message { min-width: 0; }
+.promotion-label { display: block; color: #4a5f79; font-size: .5625rem; font-weight: 700; letter-spacing: 1.2px; overflow-wrap: anywhere; }
+.sponsor-message h2 { color: #263c56; font-size: .9375rem; line-height: 1.45; font-weight: 650; letter-spacing: -.2px; margin: 4px 0 3px; overflow-wrap: anywhere; }
+.sponsor-message p { font-size: .8125rem; color: #425670; margin: 0; line-height: 1.5; overflow-wrap: anywhere; }
+.sponsor-message small { display: block; color: #50627a; font-size: .6875rem; line-height: 1.6; margin-top: 3px; }
+.sponsor-actions { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
+.sponsor-cta { display: inline-flex; align-items: center; justify-content: center; gap: 9px; color: #193d6a; background: #f5f4f0; padding: 10px 15px; min-height: 40px; font-size: .8125rem; font-weight: 650; border: 1px solid #afbed1; border-radius: 6px; }
+.sponsor-cta:hover { background: #fdfcf9; border-color: #6989b5; }
+.sponsor-actions>a:last-child { color: #405976; font-size: .625rem; text-decoration: underline; text-underline-offset: 3px; }
+.research-next-steps { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--border); border-radius: 10px; background: #e1e7ee; }
+.next-step { display: flex; align-items: center; gap: 13px; padding: 19px 23px; }
+.next-step+.next-step { border-left: 1px solid var(--border); }
+.next-step-icon { color: #4e6787; }
+.next-step a { display: inline-flex; align-items: center; gap: 7px; color: #264b7c; font-size: .8125rem; font-weight: 650; }
+.next-step a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.next-step p { color: #4d6079; font-size: .75rem; line-height: 1.6; margin: 4px 0 0; }
+
+.search-content-compact .search-explainer { margin: 15px 0 34px; padding: 28px 30px; gap: 44px; border-radius: 12px; }
+.search-content-compact h2 { font-size: 1.5rem; letter-spacing: -.6px; }
+.search-content-compact .search-explainer p { font-size: .875rem; line-height: 1.75; }
+.search-content-compact .research-steps li { padding-bottom: 14px; margin-bottom: 14px; }
+.search-content-compact .search-faq { margin: 0; padding: 26px 0 35px; }
+.search-content-compact .learning-section { padding: 30px 0 38px; }
+.search-content-compact .guide-visual { display: none; }
+.search-content-compact .illustrated-guide { display: flex; }
+.search-content-compact .guide-card-body { padding: 23px; }
+.search-content-compact .guide-card h3 { font-size: 1.05rem; }
+.search-content-compact .guide-card p { font-size: .8125rem; }
+.search-content-compact .content-section-heading { margin-bottom: 20px; }
+
+.advertise-layout { display: grid; grid-template-columns: 1.3fr 1fr; gap: 28px; margin: 35px 0; align-items: start; }
+.advertise-offer { padding: 30px; border: 1px solid var(--border); border-radius: 14px; background: var(--card); }
+.advertise-kicker { display: flex; align-items: center; gap: 9px; color: #2e5a94; font-size: .6875rem; letter-spacing: 1px; font-weight: 650; }
+.advertise-offer h2 { font-size: 1.65rem; line-height: 1.25; letter-spacing: -.7px; font-weight: 650; margin: 18px 0 15px; }
+.advertise-offer>p { font-size: .9375rem; line-height: 1.8; color: var(--text-body); }
+.advertise-offer ul { list-style: none; padding: 0; margin: 23px 0; display: grid; gap: 13px; }
+.advertise-offer li { display: flex; align-items: flex-start; gap: 9px; color: #344e6a; font-size: .875rem; line-height: 1.6; }
+.advertise-offer li svg { color: #207d68; margin-top: 3px; }
+.placement-example { padding: 19px; background: #e0e7ee; border: 1px dashed #9eb0c5; border-radius: 8px; }
+.placement-example>span { display: block; font-size: .625rem; color: #4a5f79; letter-spacing: 1px; margin-bottom: 10px; }
+.placement-example>strong { font-size: .875rem; font-weight: 600; color: #293e57; }
+.placement-example>p { font-size: .75rem; margin: 7px 0 0; color: #4e637d; }
+.advertise-contact { background: #203852; border: 1px solid #203852; color: #f6f7fa; border-radius: 14px; padding: 30px; }
+.advertise-contact .eyebrow { color: #b3cfff; }
+.advertise-contact h2 { font-size: 1.5rem; letter-spacing: -.5px; margin: 14px 0; font-weight: 650; }
+.advertise-contact>p { color: #d1ddeb; font-size: .9375rem; line-height: 1.8; margin: 0 0 23px; }
+.advertise-contact .primary-button { width: 100%; background: #f3f3ed; color: #1d3d62; white-space: normal; }
+.advertise-contact .primary-button:hover { background: #fff; }
+.advertise-contact .contact-caption { font-size: .75rem; margin: 13px 0 0; color: #bdcfe3; }
+.advertise-email { display: inline-block; margin-top: 23px; color: #f1f5fb; text-decoration: underline; text-underline-offset: 4px; overflow-wrap: anywhere; }
+.advertise-principles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 30px; padding: 28px 0 36px; }
+.advertise-principles svg { color: #3061a3; }
+.advertise-principles h2 { font-size: 1rem; font-weight: 650; margin: 14px 0 10px; }
+.advertise-principles p { font-size: .875rem; line-height: 1.8; color: var(--text-body); margin: 0; }
+.advertise-disclosure { border-top: 1px solid var(--border); padding-top: 26px; }
+.advertise-disclosure h2 { font-size: .9375rem; font-weight: 650; margin: 0 0 10px; }
+.advertise-disclosure p { color: var(--text-body); font-size: .8125rem; line-height: 1.8; max-width: 900px; }
+.advertise-disclosure a { display: inline-flex; align-items: center; gap: 6px; color: #23518d; font-size: .8125rem; margin-top: 10px; }
+
+@media(max-width:900px) {
+  .research-shell .search-hero { padding: 28px 0 23px; }
+  .hero-bulk-link { display: none; }
+  .research-shell .results-metrics>div { padding: 13px; }
+  .research-shell .results-metrics dd:not(.metric-detail) { font-size: 1.8rem; }
+  .advertise-layout { gap: 20px; }
+  .advertise-offer, .advertise-contact { padding: 24px; }
+}
+@media(max-width:640px) {
+  .site-header.product-header { height: auto; }
+  .product-header .product-nav { gap: 0; }
+  .product-header .brand { font-size: 1.4rem; }
+  .product-header .brand img { width: 41px; height: 41px; }
+  .research-shell .search-hero { padding: 25px 0 19px; }
+  .research-shell .search-hero h1 { font-size: 1.9rem; letter-spacing: -1.15px; max-width: 380px; line-height: 1.2; }
+  .research-shell .search-hero h1>span { display: block; }
+  .research-shell .search-hero .page-intro>p { font-size: .875rem; }
+  .research-shell .hero-benefits { gap: 8px 13px; font-size: .625rem; margin-top: 12px; }
+  .research-shell .sample-picks { font-size: .6875rem; }
+  .research-shell .results-heading { padding: 19px 16px 14px; }
+  .research-shell .results-heading h2 { font-size: 1.1rem; }
+  .research-shell .results-metrics { margin: 0 16px 14px; }
+  .research-shell .results-metrics>div { display: block; padding: 13px; }
+  .research-shell .results-metrics dd:not(.metric-detail) { margin: 7px 0 5px; }
+  .research-shell .results-metrics>div:last-child { display: grid; }
+  .research-shell .results-metrics>div:last-child dd:not(.metric-detail) { margin: 0; }
+  .research-shell .results-coverage { padding: 0 16px 16px; }
+  .research-shell .overview-toolbar { padding: 0 16px; }
+  .research-shell .overview-filters { padding: 12px 16px; }
+  .research-shell .name-results-table tbody th, .research-shell .name-results-table tbody td { padding-top: 0; padding-bottom: 0; }
+  .research-shell .activity-explanation { padding: 13px 16px; }
+  .research-shell .bulk-intro h1 { font-size: 1.8rem; }
+  .sponsor-spot { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 15px 16px; }
+  .sponsor-mark { display: none; }
+  .sponsor-actions { margin-left: 0; flex-direction: row; justify-content: space-between; gap: 12px; }
+  .sponsor-cta { min-height: 38px; padding: 8px 12px; font-size: .75rem; }
+  .sponsor-actions>a:last-child { font-size: .6875rem; }
+  .research-next-steps { grid-template-columns: 1fr; }
+  .next-step { padding: 16px; }
+  .next-step+.next-step { border-left: 0; border-top: 1px solid var(--border); }
+  .search-content-compact .search-explainer { padding: 23px; gap: 24px; }
+  .search-content-compact h2 { font-size: 1.35rem; }
+  .search-content-compact .search-faq { padding: 15px 0 25px; }
+  .search-content-compact .learning-section { padding: 25px 0; }
+  .search-content-compact .illustrated-guide { display: block; }
+  .advertise-layout, .advertise-principles { grid-template-columns: 1fr; gap: 22px; }
+  .advertise-layout { margin: 25px 0; }
+  .advertise-principles { padding: 15px 0 28px; }
+}

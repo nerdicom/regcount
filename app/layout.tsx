@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import './research.css';
 import { AuthProvider } from '@/components/auth-provider';
 import { SITE_URL, SOCIAL_IMAGE } from '@/lib/seo';
 export const metadata: Metadata = {
