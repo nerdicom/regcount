@@ -4,6 +4,10 @@ This adds private download, parsing and indexed storage to the existing
 PostgreSQL VPS foundation. It does not change the website, publish a search API,
 download all approved zones, or enable an unattended schedule.
 
+The [coverage priorities](COVERAGE.md) track the ten required extensions,
+supplemental country-code sources and the checks needed before claiming live
+coverage. The pilot limits do not yet support an unmeasured .com import.
+
 ## Install and first import
 
 Use `infra/vps/install-czds.sh` from a reviewed immutable commit. Pass the same
