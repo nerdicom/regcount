@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Private, bounded, one-zone CZDS pilot. Python standard library only."""
 import argparse
+from datetime import datetime, timezone
 import fcntl
 import getpass
 import gzip
@@ -18,15 +19,14 @@ import urllib.parse
 import urllib.request
 
 from database import PSQL, import_labels
+from limits import GIB, MIN_FREE, PILOT, PROFILES
 from zone import ZoneError, ZoneReader, tld_name
 
 
 ROOT = Path("/opt/regcount-data/czds")
 AUTH_URL = "https://account-api.icann.org/api/authenticate"
 LINKS_URL = "https://czds-api.icann.org/czds/downloads/links"
-MAX_COMPRESSED = 256 * 1024**2
-MAX_EXPANDED = 2 * 1024**3
-MIN_FREE = 20 * 1024**3
+DB_STORAGE = None
 COOLDOWN = 86400
 CHUNK = 64 * 1024
 
@@ -130,9 +130,44 @@ def approved_links(token):
     return links
 
 
-def disk_guard():
-    if shutil.disk_usage(ROOT).free < MIN_FREE:
-        raise SafeError("Less than 20 GiB free. Import stopped before commit; review disk usage.")
+def database_storage():
+    result = subprocess.run(
+        ["docker", "volume", "inspect", "regcount-postgres-data", "--format", "{{.Mountpoint}}"],
+        check=True, capture_output=True, text=True)
+    path = Path(result.stdout.strip())
+    if not path.is_absolute() or not path.is_dir():
+        raise SafeError("Cannot verify the database volume's free disk space.")
+    return path
+
+
+def disk_guard(required=MIN_FREE):
+    for path in (ROOT, DB_STORAGE):
+        if path is not None and shutil.disk_usage(path).free < required:
+            raise SafeError(f"Less than {required / GIB:g} GiB free on an importer/database filesystem. Review disk usage; nothing committed by this attempt.")
+
+
+def capacity(tld, profile):
+    limits = PROFILES[profile]
+    print(f"Profile {profile}: compressed limit {limits.compressed / 1024**2:g} MiB; expanded limit {limits.expanded / GIB:g} GiB.")
+    for name, path in (("Importer", ROOT), ("Database volume", DB_STORAGE)):
+        if path is not None:
+            print(f"{name} free: {shutil.disk_usage(path).free / GIB:.1f} GiB")
+    print(f"Required before starting: {limits.start_free / GIB:g} GiB free; stop reserve: {MIN_FREE / GIB:g} GiB.")
+    try:
+        disk_guard(limits.start_free)
+        print("Disk preflight: PASS (a budget check, not a full-zone capacity guarantee).")
+    except SafeError:
+        print("Disk preflight: BLOCKED. Free space is below the selected profile's requirement.")
+    state = ROOT / "cache" / (tld + ".attempt.json")
+    if state.exists():
+        eligible = float(private_json(state)["attempted_at"]) + COOLDOWN
+        print(f".{tld} next download allowed at: {datetime.fromtimestamp(eligible, timezone.utc).isoformat()}")
+        print("Download timer: " + ("READY" if time.time() >= eligible else "WAIT"))
+    else:
+        print(f".{tld}: no local download attempt recorded; also check for downloads made elsewhere.")
+    cached = ROOT / "cache" / (tld + ".zone.gz")
+    print("Complete cached file: " + (f"{cached.stat().st_size / 1024**2:.1f} MiB (checksum checked during import)" if cached.exists() else "none"))
+    subprocess.run(PSQL + ["-c", "SELECT 'Database size: ' || pg_size_pretty(pg_database_size(current_database()))"], check=True)
 
 
 def check_cooldown(path, now):
@@ -143,12 +178,12 @@ def check_cooldown(path, now):
             raise SafeError(f"Download attempted within 24 hours. Wait about {hours:.1f} hours, or use import-cache if a completed file exists.")
 
 
-def download(tld, url, token):
+def download(tld, url, token, limits=PILOT):
     folder = ROOT / "cache"
     state = folder / (tld + ".attempt.json")
     now = time.time()
     check_cooldown(state, now)
-    disk_guard()
+    disk_guard(limits.start_free)
     # Persist before requesting data: even interrupted attempts enforce cadence.
     save_json(state, {"attempted_at": now})
     partial = folder / (tld + ".partial")
@@ -157,8 +192,8 @@ def download(tld, url, token):
         with request(url, token) as response, partial.open("wb") as output:
             while chunk := response.read(CHUNK):
                 count += len(chunk)
-                if count > MAX_COMPRESSED:
-                    raise SafeError("Zone exceeds the 256 MiB compressed pilot limit; capacity review required.")
+                if count > limits.compressed:
+                    raise SafeError(f"Zone exceeds this profile's {limits.compressed / 1024**2:g} MiB compressed limit; capacity review required. The 24-hour download timer remains active.")
                 disk_guard()
                 output.write(chunk)
                 digest.update(chunk)
@@ -174,41 +209,44 @@ def download(tld, url, token):
         partial.unlink(missing_ok=True)
 
 
-def zone_lines(path):
+def zone_lines(path, limits=PILOT):
     total = 0
     with gzip.open(path, "rb") as source:
         while line := source.readline(65537):
             total += len(line)
-            if len(line) > 65536 or total > MAX_EXPANDED:
-                raise SafeError("Zone exceeds the bounded pilot parser limits.")
+            if len(line) > 65536 or total > limits.expanded:
+                raise SafeError("Zone exceeds this profile's expanded-size or record limit; complete cache retained for review.")
             yield line.decode("utf-8")
     # Reading to EOF verifies gzip trailers, including CRC and truncation.
 
 
-def import_cache(tld, allow_large_drop=False):
+def import_cache(tld, allow_large_drop=False, limits=PILOT):
     path = ROOT / "cache" / (tld + ".zone.gz")
     metadata = private_json(ROOT / "cache" / (tld + ".json"))
-    if metadata["tld"] != tld or path.stat().st_size > MAX_COMPRESSED:
+    if metadata["tld"] != tld or path.stat().st_size > limits.compressed:
         raise SafeError("Cached file metadata or size is invalid.")
-    disk_guard()
+    disk_guard(limits.start_free)
     with path.open("rb") as source:
         digest = hashlib.file_digest(source, "sha256").hexdigest()
     if digest != metadata["sha256"] or path.stat().st_size != metadata["compressed_bytes"]:
         raise SafeError("Cached file checksum failed; nothing imported.")
     print(f"Importing .{tld}; existing data remains available until commit.", flush=True)
-    print(import_labels(tld, ZoneReader(tld), zone_lines(path), metadata, disk_guard, allow_large_drop))
+    print(import_labels(tld, ZoneReader(tld), zone_lines(path, limits), metadata, disk_guard, allow_large_drop, limits))
 
 
 def main():
+    global DB_STORAGE
     os.umask(0o077)
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     for name in ["configure", "approved", "status"]:
         sub.add_parser(name)
-    for name in ["sync", "import-cache"]:
+    for name in ["sync", "import-cache", "capacity"]:
         command = sub.add_parser(name)
         command.add_argument("tld", type=tld_name)
-        command.add_argument("--allow-large-drop", action="store_true", help="accept a reviewed >20%% count decrease; does not bypass download cadence")
+        command.add_argument("--profile", choices=PROFILES, default="pilot", help="medium permits up to 1 GiB compressed / 8 GiB expanded, requiring 60 GiB free before starting")
+        if name != "capacity":
+            command.add_argument("--allow-large-drop", action="store_true", help="accept a reviewed >20%% count decrease; does not bypass download cadence")
     args = parser.parse_args()
     if os.geteuid() != 0:
         raise SafeError("Run this tool as root in the VPS terminal.")
@@ -229,14 +267,20 @@ def main():
         elif args.command == "status":
             subprocess.run(PSQL + ["-c", "SELECT tld, domain_count, soa_serial, downloaded_at, imported_at FROM domain_index.zones ORDER BY tld"], check=True)
         else:
+            DB_STORAGE = database_storage()
+            if args.command == "capacity":
+                capacity(args.tld, args.profile)
+                return
+            limits = PROFILES[args.profile]
+            disk_guard(limits.start_free)
             if args.command == "sync":
                 check_cooldown(ROOT / "cache" / (args.tld + ".attempt.json"), time.time())
                 token = authenticate()
                 links = approved_links(token)
                 if args.tld not in links:
                     raise SafeError("That extension is not in this account's approved downloads.")
-                download(args.tld, links[args.tld], token)
-            import_cache(args.tld, args.allow_large_drop)
+                download(args.tld, links[args.tld], token, limits)
+            import_cache(args.tld, args.allow_large_drop, limits)
 
 
 if __name__ == "__main__":

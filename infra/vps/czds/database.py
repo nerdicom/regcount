@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 
 from zone import tld_name
+from limits import PILOT
 
 
 PSQL = ["docker", "compose", "-f", "/opt/regcount-data/compose.yaml",
@@ -27,7 +28,7 @@ COPY incoming(label) FROM STDIN;
 """
 
 
-def finish_sql(tld, serial, metadata, allow_large_drop=False):
+def finish_sql(tld, serial, metadata, allow_large_drop=False, limits=PILOT):
     tld = tld_name(tld)
     serial = int(serial)
     digest = metadata["sha256"]
@@ -38,7 +39,7 @@ def finish_sql(tld, serial, metadata, allow_large_drop=False):
     table = "z_" + hashlib.sha256(tld.encode()).hexdigest()[:24]
     candidate = table + "_next"
     # Only validated LDH labels, hashes, integers and finite floats are rendered.
-    if not 0 < fetched < 1e11 or not 0 < size <= 256 * 1024**2:
+    if not 0 < fetched < 1e11 or not 0 < size <= limits.compressed:
         raise ValueError("Invalid download metadata")
     drop_clause = "" if allow_large_drop else """
  IF previous_count IS NOT NULL AND new_count < previous_count * 0.8 THEN
@@ -83,7 +84,7 @@ SELECT 'REGCOUNT_READY_TO_COMMIT';
 """
 
 
-def import_labels(tld, reader, lines, metadata, guard, allow_large_drop=False):
+def import_labels(tld, reader, lines, metadata, guard, allow_large_drop=False, limits=PILOT):
     # Stderr goes to a private temporary file, preventing pipe-buffer deadlock.
     with tempfile.TemporaryFile() as errors:
         process = subprocess.Popen(PSQL, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -97,7 +98,7 @@ def import_labels(tld, reader, lines, metadata, guard, allow_large_drop=False):
             guard()
             # This terminator and COMMIT are never sent after parser/CRC failure.
             process.stdin.write("\\.\n")
-            process.stdin.write(finish_sql(tld, reader.serial, metadata, allow_large_drop))
+            process.stdin.write(finish_sql(tld, reader.serial, metadata, allow_large_drop, limits))
             process.stdin.flush()
             with selectors.DefaultSelector() as selector:
                 selector.register(process.stdout, selectors.EVENT_READ)

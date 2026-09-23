@@ -12,7 +12,7 @@ coverage. The pilot limits do not yet support an unmeasured .com import.
 
 Use `infra/vps/install-czds.sh` from a reviewed immutable commit. Pass the same
 40-character commit SHA as its sole argument. The installer downloads only the
-four production files in this directory and verifies `SHA256SUMS`. It leaves
+five production files in this directory and verifies `SHA256SUMS`. It leaves
 the existing PostgreSQL password, Compose configuration and volume intact.
 It requires root, Python 3.11+, Docker Compose, curl, flock and sha256sum.
 
@@ -90,12 +90,53 @@ credentials and registry approvals; the importer does not retry automatically.
 Redirects and unfamiliar download hosts are refused to avoid forwarding the
 bearer token to another service.
 
-## Pilot resource limits
+## Larger files and capacity checks
+
+The default `pilot` profile remains unchanged. For a zone such as `.app` that
+exceeds the compressed pilot cap, install the updated code from a reviewed
+commit, then inspect local capacity without making an ICANN request:
+
+```sh
+regcount-czds capacity app --profile medium
+```
+
+This reports free space on both the cache and Docker database-volume
+filesystems, database size, cached-file presence and the exact next eligible
+download time in UTC. It does not download data or reset attempt history.
+An installer upgrade preserves existing credentials, cached files, cadence
+history and database rows; there is no need to run `configure` again.
+
+Once the disk check passes and the download timer is ready:
+
+```sh
+regcount-czds sync app --profile medium
+```
+
+The medium profile permits up to 1 GiB compressed / 8 GiB expanded, with at
+least 60 GiB free before both download and import. This is a conservative
+starting budget, not a guarantee that any particular zone fits. Limits are
+shared by the downloader, parser, cache validation and SQL metadata checks.
+The 20 GiB stop reserve is still checked throughout processing on both
+filesystems. Temporary sort files remain limited to 4 GiB per process.
+
+A transfer stopped at the compressed cap has no complete new cached file;
+wait until the displayed eligibility time. A complete download whose *import*
+fails can be reprocessed after addressing the error without another download:
+
+```sh
+regcount-czds import-cache app --profile medium
+```
+
+Neither profile bypasses the 24-hour attempt limit. Broad ingestion and
+`.com`/`.net` still require access verification, benchmarks and a storage plan.
+
+## Resource limits
 
 | Limit | Value |
 | --- | --- |
-| Compressed zone | 256 MiB |
-| Expanded zone | 2 GiB |
+| Compressed zone | Pilot: 256 MiB; medium: 1 GiB |
+| Expanded zone | Pilot: 2 GiB; medium: 8 GiB |
+| Free space before download/import | Pilot: 20 GiB; medium: 60 GiB |
 | Logical record | 64 KiB |
 | Free disk reserve | 20 GiB |
 | PostgreSQL sort/temp files for ingest role | 4 GiB per process |
@@ -104,7 +145,7 @@ bearer token to another service.
 
 Disk checks run during transfer, parsing, and database preparation. The
 20 GiB reserve is a stop threshold, not a filesystem quota; concurrent writes
-and PostgreSQL WAL can overshoot it. The 2 GiB parser limit is not an estimate
+and PostgreSQL WAL can overshoot it. The expanded parser limit is not an estimate
 of total disk use. Database staging, indexes, sorting and WAL all need space.
 These limits target a small pilot on KVM 4. `.com`, `.net`, and broad ingestion
 need a capacity benchmark and a planned storage budget before increasing them.
@@ -130,8 +171,10 @@ Run the parser, download-safety and process-abort tests with:
 python3 -m unittest discover -s infra/vps/czds -p 'test_*.py' -v
 ```
 
-The 18 Python tests include simulated installer reruns, checksum failures,
-preserving locally modified code and preserving credentials/download history.
+The 24 Python tests include simulated installer reruns and upgrades from the
+four-file release, checksum failures, separate database filesystem checks,
+profile consistency and preserving credentials/download history. A failed
+disk preflight must not consume a download attempt; a failed transfer must.
 
 `test-postgres.mjs` tests the generated DDL/DML in a disposable PGlite
 PostgreSQL 17.5 instance with synthetic zone records: unique counts, another
@@ -142,9 +185,12 @@ the separate test-only dependency command; it is not a website dependency.
 
 The embedded database uses a file-device COPY adapter in place of psql's
 STDIN, and its synthetic database catalog does not support the database-level
-GRANT. Native Docker/psql transport, that GRANT, production PostgreSQL 17.11,
-real ICANN login/download, and real zone format/performance remain VPS pilot
-checks. No live credentials or registry data were used in local tests.
+GRANT. User-provided VPS output on 2026-09-23 confirms native PostgreSQL 17.11
+schema setup, ICANN authentication, 853 approved links, and successful imports
+of `.zone` (31,719) and `.dev` (767,025). The next `.app` transfer stopped at the
+original 256 MiB compressed cap and left those rows intact. The new medium
+profile still needs a VPS capacity check and a complete real-zone benchmark.
+No live credentials or registry data were used in local tests.
 
 ## After the pilot
 

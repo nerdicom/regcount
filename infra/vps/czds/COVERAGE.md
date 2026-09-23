@@ -5,17 +5,19 @@ Required extensions, specified by Nick on 2026-09-23:
 **.com .net .org .ai .si .io .xyz .app .dev .so**
 
 These are coverage requirements, not a statement that data has been imported.
-The VPS pilot installed successfully on 2026-09-23. ICANN authentication returned
-HTTP 401 during configuration, before retrieving approval links or any zones.
-No live index coverage has been demonstrated yet.
+The VPS pilot installed successfully on 2026-09-23. Subsequent terminal output
+confirms ICANN authentication, 853 approved links, and successful native imports
+of `.dev` (767,025 unique delegated domains) and `.zone` (31,719). The `.app`
+transfer exceeded the original 256 MiB compressed cap; no `.app` import has
+completed. These are private index results, not live website integration.
 
 ## Acquisition routes
 
 | Extensions | Planned source | Remaining work |
 | --- | --- | --- |
-| .com, .net | Verisign through ICANN CZDS | Verify account approval, benchmark large-zone storage and imports |
-| .org | PIR through ICANN CZDS | Verify account approval and import capacity |
-| .xyz, .app, .dev | ICANN CZDS, subject to registry approval | Verify current approved links, import and validate |
+| .com, .net | Verisign through ICANN CZDS | Absent from the supplied approved-link list; check request status and benchmark capacity |
+| .org | PIR through ICANN CZDS | Listed as approved; import and validate capacity |
+| .xyz, .app, .dev | ICANN CZDS | Listed as approved; .dev imported, .app capacity-blocked, .xyz not imported |
 | .ai, .io | Registry agreement or licensed supplemental source | Confirm access, refresh frequency, completeness and public-product rights |
 | .si | Register.si agreement or licensed source; official RDAP for individual checks | Confirm bulk access; evaluate permitted cached exact-name lookups |
 | .so | soNIC/registry agreement or licensed source | Confirm a supported bulk feed or permitted lookup service |
@@ -57,8 +59,9 @@ direct-child CZDS parser must not be reused blindly for those namespaces.
 4. Avoid double counting when a domain appears in both a zone and a supplemental
    source. Keep exact-name results separate from substring/related-name counts.
 5. Budget and benchmark .com/.net before enabling large loads. The installed
-   pilot deliberately caps files at 256 MiB compressed / 2 GiB expanded and
-   is not an implementation or capacity guarantee for the full .com zone.
+   default pilot caps files at 256 MiB compressed / 2 GiB expanded. The optional
+   medium profile allows 1 GiB / 8 GiB with a 60 GiB free-space preflight;
+   neither profile guarantees capacity for the full .com zone.
 6. Validate terms, access controls, query limits, backups and freshness monitoring
    before connecting live sources to the public website.
 

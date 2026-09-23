@@ -1,4 +1,6 @@
 import gzip
+from contextlib import redirect_stdout
+from dataclasses import replace
 import importlib.util
 import io
 import json
@@ -9,6 +11,7 @@ import unittest
 from unittest.mock import patch
 
 from database import begin_sql, finish_sql, import_labels
+from limits import GIB, MEDIUM, PILOT
 from zone import ZoneError, ZoneReader, records, tld_name
 
 spec = importlib.util.spec_from_file_location("client", Path(__file__).with_name("regcount-czds.py"))
@@ -94,16 +97,16 @@ class DownloadTests(unittest.TestCase):
             with self.assertRaises(EOFError):
                 list(client.zone_lines(path))
             path.write_bytes(gzip.compress(fixture().encode()))
-            with patch.object(client, "MAX_EXPANDED", 100), self.assertRaises(client.SafeError):
-                list(client.zone_lines(path))
+            with self.assertRaises(client.SafeError):
+                list(client.zone_lines(path, replace(PILOT, expanded=100)))
 
     def test_failed_download_cleans_partial_and_keeps_cooldown(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             (root / "cache").mkdir()
-            with patch.object(client, "ROOT", root), patch.object(client, "disk_guard"), patch.object(client, "request", return_value=io.BytesIO(b"x" * 40)), patch.object(client, "MAX_COMPRESSED", 20):
+            with patch.object(client, "ROOT", root), patch.object(client, "disk_guard"), patch.object(client, "request", return_value=io.BytesIO(b"x" * 40)):
                 with self.assertRaises(client.SafeError):
-                    client.download("test", "https://example.invalid", "private-token")
+                    client.download("test", "https://example.invalid", "private-token", replace(PILOT, compressed=20))
                 self.assertTrue((root / "cache/test.attempt.json").exists())
                 self.assertFalse((root / "cache/test.partial").exists())
                 self.assertFalse((root / "cache/test.zone.gz").exists())
@@ -123,8 +126,66 @@ class DownloadTests(unittest.TestCase):
             with self.assertRaises(client.SafeError):
                 client.disk_guard()
 
+    def test_preflight_failure_does_not_consume_download_attempt(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "cache").mkdir()
+            with patch.object(client, "ROOT", root), patch.object(client, "disk_guard", side_effect=client.SafeError("low disk")), patch.object(client, "request") as request:
+                with self.assertRaises(client.SafeError):
+                    client.download("app", "https://example.invalid", "private-token", MEDIUM)
+                request.assert_not_called()
+                self.assertFalse((root / "cache/app.attempt.json").exists())
+
+    def test_database_filesystem_is_checked_separately(self):
+        usage = lambda path: type("Usage", (), {"free": 100 * GIB if path == client.ROOT else 10 * GIB})()
+        with patch.object(client, "DB_STORAGE", Path("/separate-volume")), patch.object(client.shutil, "disk_usage", side_effect=usage):
+            with self.assertRaises(client.SafeError):
+                client.disk_guard()
+
+    def test_medium_download_cache_and_parser_use_same_budget(self):
+        data = gzip.compress(fixture("app").encode())
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "cache").mkdir()
+            with patch.object(client, "ROOT", root), patch.object(client, "disk_guard"), patch.object(client, "request", return_value=io.BytesIO(data)), patch.object(client, "import_labels", return_value="app: 2 unique delegated domains imported") as db, redirect_stdout(io.StringIO()):
+                client.download("app", "https://example.invalid", "private-token", MEDIUM)
+                client.import_cache("app", limits=MEDIUM)
+                args = db.call_args.args
+                self.assertIs(args[-1], MEDIUM)
+                self.assertEqual(set(args[1].labels(args[2])), {"alpha", "beta"})
+                with self.assertRaises(client.SafeError):
+                    client.import_cache("app", limits=replace(PILOT, compressed=len(data) - 1))
+                self.assertEqual(db.call_count, 1)
+
+    def test_capacity_is_local_and_preserves_cadence(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "cache").mkdir()
+            state = root / "cache/app.attempt.json"
+            client.save_json(state, {"attempted_at": 1790100000})
+            before = state.read_bytes()
+            output = io.StringIO()
+            with patch.object(client, "ROOT", root), patch.object(client, "DB_STORAGE", root), patch.object(client.time, "time", return_value=1790100010), patch.object(client.shutil, "disk_usage", return_value=type("Usage", (), {"free": 100 * GIB})()), patch.object(client.subprocess, "run") as query, patch.object(client, "request") as request, redirect_stdout(output):
+                client.capacity("app", "medium")
+            self.assertIn("Disk preflight: PASS", output.getvalue())
+            self.assertIn("Download timer: WAIT", output.getvalue())
+            self.assertIn("2026-09-23T18:00:00+00:00", output.getvalue())
+            self.assertIn("Complete cached file: none", output.getvalue())
+            self.assertEqual(state.read_bytes(), before)
+            request.assert_not_called()
+            self.assertIn("pg_database_size", query.call_args.args[0][-1])
+
 
 class ProcessTests(unittest.TestCase):
+    def test_metadata_limit_matches_selected_profile(self):
+        for size in (PILOT.compressed + 1, MEDIUM.compressed):
+            meta = {**META, "compressed_bytes": size}
+            with self.assertRaises(ValueError):
+                finish_sql("app", 100, meta)
+            self.assertIn(str(size), finish_sql("app", 100, meta, limits=MEDIUM))
+        with self.assertRaises(ValueError):
+            finish_sql("app", 100, {**META, "compressed_bytes": MEDIUM.compressed + 1}, limits=MEDIUM)
+
     def test_parser_failure_never_sends_commit(self):
         class Input(io.StringIO):
             def close(self):
