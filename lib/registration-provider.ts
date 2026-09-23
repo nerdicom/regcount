@@ -1,9 +1,8 @@
-import {env} from 'cloudflare:workers';
 import {demoResult,normalizeQuery,type SearchResult,type DomainMatch} from './domains';
 
 type Settings={REGCOUNT_LIVE_ENABLED?:string;DOTDB_API_KEY?:string};
 export class ProviderError extends Error{constructor(message:string,public status=502){super(message);}}
-export function dataMode(): 'dotdb' | 'demo' {const settings=env as unknown as Settings;return settings.REGCOUNT_LIVE_ENABLED==='true'?'dotdb':'demo';}
+export function dataMode(): 'dotdb' | 'demo' {const settings=process.env as Settings;return settings.REGCOUNT_LIVE_ENABLED==='true'?'dotdb':'demo';}
 const cache=new Map<string,{expires:number;value:SearchResult}>();
 function cleanSuffixes(value:unknown):string[]{if(!Array.isArray(value))return[];return [...new Set(value.filter((x):x is string=>typeof x==='string').map(s=>s.replace(/^\./,'').toLowerCase()).filter(s=>/^[a-z0-9-]+(?:\.[a-z0-9-]+)*$/.test(s)))];}
 function numeric(value:unknown):number|null{if(value===null||value===undefined||value==='')return null;const n=Number(value);return Number.isSafeInteger(n)&&n>=0?n:null;}
@@ -19,7 +18,7 @@ async function queryProvider(query:string,key:string,exact=false){
 }
 export async function searchRegistrations(value:string):Promise<SearchResult>{
  const query=normalizeQuery(value),mode=dataMode();if(mode==='demo')return demoResult(query);
- const key=(env as unknown as Settings).DOTDB_API_KEY;if(!key)throw new ProviderError('Live registration data has not been connected yet.',503);
+ const key=(process.env as Settings).DOTDB_API_KEY;if(!key)throw new ProviderError('Live registration data has not been connected yet.',503);
  const cached=cache.get(query);if(cached&&cached.expires>Date.now())return cached.value;
  const payload=await queryProvider(query,key);
  const parse=(rows:unknown)=>Array.isArray(rows)?rows.filter((row):row is Record<string,unknown>=>!!row&&typeof row==='object'&&typeof row.name==='string'&&/^[a-z0-9-]{1,63}$/.test(row.name)).map(row=>({name:String(row.name),count:numeric(row.count)??cleanSuffixes(row.suffixes).length,suffixes:cleanSuffixes(row.suffixes)})):[];

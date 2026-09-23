@@ -1,7 +1,15 @@
 import {dataMode,searchRegistrations} from '@/lib/registration-provider';
 import {normalizeQuery,type BulkRow} from '@/lib/domains';
 export async function POST(request:Request){
- const origin=request.headers.get('origin');if(origin&&origin!==new URL(request.url).origin)return Response.json({error:'This request must come from RegCount.'},{status:403});
+ // Next.js may use an internal URL behind the hosting proxy. The Host header
+ // retains the public request host, including its port when one is present.
+ const origin=request.headers.get('origin');
+ if(origin){
+  const requestHost=request.headers.get('host')||new URL(request.url).host;
+  let sameOrigin=false;
+  try{const parsed=new URL(origin);sameOrigin=['http:','https:'].includes(parsed.protocol)&&parsed.host.toLowerCase()===requestHost.toLowerCase();}catch{}
+  if(!sameOrigin)return Response.json({error:'This request must come from RegCount.'},{status:403});
+ }
  const text=await request.text();if(text.length>20000)return Response.json({error:'The list is too large.'},{status:413});
  let payload;try{payload=JSON.parse(text);}catch{return Response.json({error:'Send a valid list of names.'},{status:400});}
  if(!Array.isArray(payload?.queries)||!payload.queries.length||payload.queries.length>50||payload.queries.some((q:unknown)=>typeof q!=='string'))return Response.json({error:'Provide between 1 and 50 names.'},{status:400});
