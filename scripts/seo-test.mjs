@@ -7,7 +7,7 @@ import { writeFile } from 'node:fs/promises';
 const port = Number(process.env.REGCOUNT_SEO_TEST_PORT || 3130);
 const base = `http://127.0.0.1:${port}`;
 const site = 'https://regcount.com';
-const routes = ['/', '/bulk-domain-search', '/how-it-works', '/guides', '/guides/domain-registration-count', '/guides/domain-extensions-explained', '/guides/compare-domain-names'];
+const routes = ['/', '/bulk-domain-search', '/how-it-works', '/about', '/glossary', '/guides', '/guides/domain-registration-count', '/guides/domain-extensions-explained', '/guides/compare-domain-names'];
 const server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '--hostname', '127.0.0.1', '--port', String(port)], {
   env: { ...process.env, REGCOUNT_LIVE_ENABLED: 'false', DOTDB_API_KEY: '', NEXTAUTH_SECRET: '' }, stdio: ['ignore', 'pipe', 'pipe'],
 });
@@ -112,7 +112,7 @@ try {
   assert.equal(png.readUInt32BE(20), 630);
   if (process.env.REGCOUNT_SEO_PREVIEW_PATH) await writeFile(process.env.REGCOUNT_SEO_PREVIEW_PATH, png);
   assert.equal((await fetch(base + '/_next/image?url=%2Fregcount-logo.png&w=64&q=75')).status, 200);
-  console.log('Passed: seven public pages, unique metadata, server-rendered content, canonicals, sitemap, robots, JSON-LD, query/private exclusions, unknown-guide 404, www redirect, social PNG, and optimized logo.');
+  console.log('Passed: nine public pages, unique metadata, server-rendered content, canonicals, sitemap, robots, JSON-LD, query/private exclusions, unknown-guide 404, www redirect, social PNG, and optimized logo.');
 } finally {
   if (server.exitCode === null) {
     const exited = new Promise(resolve => server.once('exit', resolve));

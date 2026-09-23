@@ -4,7 +4,7 @@ export const SITE_URL = 'https://regcount.com';
 export const SITE_NAME = 'RegCount';
 export const CONTENT_DATE = '2026-09-23';
 export const SOCIAL_IMAGE = { url: `${SITE_URL}/social-image`, width: 1200, height: 630, alt: 'RegCount — Domain registration research for domain people' };
-export const PUBLIC_ROUTES = ['/', '/bulk-domain-search', '/how-it-works', '/guides', '/guides/domain-registration-count', '/guides/domain-extensions-explained', '/guides/compare-domain-names'];
+export const PUBLIC_ROUTES = ['/', '/bulk-domain-search', '/how-it-works', '/about', '/glossary', '/guides', '/guides/domain-registration-count', '/guides/domain-extensions-explained', '/guides/compare-domain-names'];
 export const PRIVATE_ROBOTS = { index: false, follow: false };
 export type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 

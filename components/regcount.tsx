@@ -1,9 +1,9 @@
 'use client';
 import Link from 'next/link';
-import Image from 'next/image';
+import { SiteHeader } from '@/components/site-header';
+import { NameIllustration } from '@/components/name-illustration';
 import { useRouter } from 'next/navigation';
 import { SiteFooter } from '@/components/site-footer';
-import { AccountLink } from '@/components/account-controls';
 import {useCallback,useEffect,useRef,useState,type FormEvent} from 'react';
 import {ArrowDown,ArrowDownUp,ArrowRight,ArrowUpRight,Check,ChevronRight,Copy,Download,Globe2,Info,Layers3,ListFilter,ListTree,LoaderCircle,Search,ShieldCheck,Sparkles,X} from 'lucide-react';
 import {Tabs,TabsList,TabsTrigger,TabsContent} from '@/components/ui/tabs';
@@ -54,15 +54,12 @@ export default function RegCount({initialView='search',children}:{initialView?:'
  function exportResults(){downloadCsv(`regcount-${result.query}-${result.source}.csv`,[['Keyword','Domain','Extension','Type','Data source'],...filtered.map(s=>[result.query,`${result.query}.${s}`,`.${s}`,extensionKind(s),result.source==='demo'?'ILLUSTRATIVE SAMPLE — NOT VERIFIED':'dotDB'])]);}
  return <div className="site-shell">
  <a href="#main" className="skip-link">Skip to search</a>
- <header className="site-header"><div className="header-inner">
-  <Link className="brand" href="/" aria-label="RegCount home"><Image src="/regcount-logo.png" alt="" width={56} height={56}/><span>Reg<span className="brand-count">Count</span><b>.</b></span></Link>
-  <nav className="main-nav tool-links" aria-label="Research tools"><Link href="/" aria-current={initialView==='search'?'page':undefined}><Search size={17}/>Domain search</Link><Link href="/bulk-domain-search" aria-current={initialView==='bulk'?'page':undefined}><Layers3 size={17}/>Bulk search</Link></nav>
-  <div className="header-actions"><button className="header-info" onClick={()=>setInfoOpen(true)}><Info size={17}/><span>About the data</span></button><AccountLink/></div>
- </div></header>
+ <SiteHeader active={initialView==='search'?'/':'/bulk-domain-search'}/>
  <div className="preview-strip"><div><span className="preview-label">{source==='demo'?'PREVIEW':'DATA'}</span><span>{source==='demo'?'Explore sample data. Live registration data isn’t connected yet.':'Registration data by dotDB. Counts reflect the provider’s index.'}</span><button onClick={()=>setInfoOpen(true)}>Learn more <ArrowUpRight size={14}/></button></div></div>
  <main id="main" className="workspace">
  {view==='search'&&<section aria-label="Domain search">
-  <div className="page-intro"><div className="eyebrow"><span className="tiny-bars" aria-hidden="true"><i/><i/><i/></span>DOMAIN INTELLIGENCE</div><h1>Domain registration counts, made clear.</h1><p>See how widely a name is registered across domain extensions.</p></div>
+  <div className="search-hero"><div className="page-intro"><div className="eyebrow"><span className="tiny-bars" aria-hidden="true"><i/><i/><i/></span>DOMAIN REGISTRATION RESEARCH</div><h1>One name.<br/><span>A world of extensions.</span></h1><p>Look beyond the .com. Explore domain registration counts, inspect the extensions, and put your next great name in perspective.</p><div className="hero-benefits"><span><Check size={15}/>Exact-name search</span><span><Check size={15}/>Bulk comparison</span><span><Check size={15}/>CSV exports</span></div></div><NameIllustration/></div>
+  <div className="tool-heading"><span>YOUR RESEARCH STARTS HERE</span><Link href="/how-it-works">How it works <ArrowUpRight size={14}/></Link></div>
   <form className="search-form" onSubmit={submit}><Search className="search-icon" size={23}/><label className="sr-only" htmlFor="domain-search">Name or domain</label><input id="domain-search" ref={inputRef} value={input} onChange={e=>setInput(e.target.value)} placeholder="Enter a name or domain" autoComplete="off" spellCheck={false} maxLength={253}/><kbd aria-hidden="true">/</kbd><button className="primary-button search-button" disabled={loading} type="submit" aria-label="Count registrations">{loading?<LoaderCircle className="spinning" size={18}/>:<Search size={18}/>}<span>{loading?'Searching':'Count registrations'}</span></button></form>
   <div className="sample-picks"><span>Try a sample:</span>{['cypress','atlas','orbit','nova'].map(name=><button key={name} onClick={()=>selectName(name)}>{name}<ArrowUpRight size={12}/></button>)}<span className="search-hint">Exact names. Clear numbers.</span></div>
   {error&&<div className="error-message" role="alert"><Info size={18}/>{error}<button onClick={()=>setError('')} aria-label="Dismiss error"><X size={17}/></button></div>}
@@ -82,14 +79,14 @@ export default function RegCount({initialView='search',children}:{initialView?:'
    </>}
    </section>
    <aside className="research-sidebar">
-    <div className="insight-card"><div className="card-icon"><Globe2 size={23}/></div><h3>A name’s bigger picture.</h3><p>One keyword can live across hundreds of extensions. Its registration count is one signal of how broadly it’s used.</p><div className="insight-note"><Info size={16}/><span>A research signal, not a valuation.</span></div></div>
+    <div className="insight-card"><div className="card-icon"><Globe2 size={23}/></div><h3>A name’s bigger picture.</h3><p>One keyword can live across hundreds of extensions. Its registration count is one signal of how broadly it’s used.</p><div className="insight-note"><Info size={16}/><span>A research signal, not a valuation.</span></div><Link className="insight-link" href="/guides/domain-registration-count">Make sense of the count <ArrowRight size={15}/></Link></div>
     <div className="examples-card"><div className="aside-heading"><h3>Explore the samples</h3><Sparkles size={17}/></div>{SAMPLE_NAMES.filter(n=>n!==result.query).slice(0,4).map(name=><button className="sample-row" key={name} onClick={()=>selectName(name)}><span>{name}</span><span className="sample-row-count">{demoResult(name).total}<ChevronRight size={15}/></span></button>)}<p>Illustrative counts, not verified registrations.</p></div>
     <Link className="bulk-callout" href="/bulk-domain-search"><span className="bulk-callout-icon"><Layers3 size={20}/></span><span><strong>A list to research?</strong><small>Compare names in bulk</small></span><ArrowRight size={18}/></Link>
    </aside>
   </div>
  </section>}
  {view==='bulk'&&<section aria-label="Bulk domain search">
-  <div className="page-intro"><div className="eyebrow"><Layers3 size={16}/>BULK RESEARCH</div><h1>Bulk domain search. One clear comparison.</h1><p>Compare exact-match extension counts for up to 50 names at once.</p></div>
+  <div className="page-intro bulk-intro"><div className="eyebrow"><Layers3 size={16}/>BULK RESEARCH</div><h1>Bulk domain search.<br/><span>One clear comparison.</span></h1><p>Compare exact-match extension counts for up to 50 names at once.</p></div>
   <div className="bulk-layout"><section className="bulk-input-panel"><div className="panel-title"><h2>Your names</h2><button onClick={()=>setBulkInput(SAMPLE_NAMES.join('\n'))}>Load sample list</button></div><label htmlFor="bulk-names">One name or domain per line</label><textarea id="bulk-names" value={bulkInput} onChange={e=>setBulkInput(e.target.value)} placeholder={'cypress\natlas.com\norbit.io'} spellCheck={false} maxLength={13000}/><div className="bulk-input-meta"><span>{bulkCount} / 50 names</span><button onClick={()=>{setBulkInput('');setBulkRows(null);setBulkError('');}} disabled={bulkLoading}>Clear</button></div><button className="primary-button bulk-submit" disabled={bulkLoading} onClick={()=>runBulk(bulkInput).catch(err=>setBulkError(err.message))}>{bulkLoading?<LoaderCircle className="spinning" size={18}/>:<Layers3 size={18}/>} {bulkLoading?'Comparing names…':'Compare registrations'}</button><p className="input-footnote">Duplicates are combined. Extensions are removed to compare the underlying names.</p></section>
    <section className="bulk-results-panel" aria-busy={bulkLoading} data-nosnippet><div className="panel-title"><h2>Comparison</h2>{bulkRows&&<button onClick={()=>downloadCsv(`regcount-comparison-${source}.csv`,[['Name','Extension count','Data source','Note'],...sorted.map(row=>[row.query,row.total,row.source==='demo'?'ILLUSTRATIVE SAMPLE — NOT VERIFIED':'dotDB',row.error||''])])}><Download size={16}/>Download CSV</button>}</div>
     {bulkError&&<div className="error-message" role="alert"><Info size={18}/>{bulkError}</div>}

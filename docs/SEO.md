@@ -8,13 +8,15 @@ Before this change, the root layout sent `noindex, nofollow` for every page. The
 
 Publicly indexed dotDB listings show descriptive search titles, keyword insight URLs, help content, and navigation to related tools. Those are useful general patterns for a research product. Direct retrieval of dotDB's homepage returned HTTP 403, so this was a review of public search listings—not an inspection of its private analytics, search volumes, backlinks, or complete technical implementation. No dotDB copy, source code, graphics, result datasets, or page layouts were copied. Existing optional provider attribution is retained.
 
-RegCount now has seven public, indexable URLs with distinct purposes:
+RegCount now has nine public, indexable URLs with distinct purposes:
 
 | URL | Topic / intent |
 | --- | --- |
 | `/` | Domain registration count and exact-name extension search |
 | `/bulk-domain-search` | Compare a list of domain names by extension count |
 | `/how-it-works` | Counting methodology, data sources, and coverage limits |
+| `/about` | Product purpose, research principles, and preview status |
+| `/glossary` | Eleven product-specific domain research terms and examples |
 | `/guides` | Discover the research guides |
 | `/guides/domain-registration-count` | Understand the meaning and limits of a count |
 | `/guides/domain-extensions-explained` | Understand TLDs, ccTLDs, and multi-label suffixes |
@@ -25,7 +27,7 @@ This topic map is an editorial plan, not a claim about keyword search volume or 
 ## Technical behavior
 
 - Public pages have server-rendered content, descriptive unique titles/descriptions, clean canonicals, and crawlable navigation.
-- `/robots.txt` points to `/sitemap.xml`. The sitemap contains only the seven intended public pages. Dates represent this content release, not the current time on every request.
+- `/robots.txt` points to `/sitemap.xml`. The sitemap contains only the nine intended public pages. Dates represent this content release, not the current time on every request.
 - The canonical origin is `https://regcount.com`. Requests arriving at the app with the www host permanently redirect to the same path and query on that origin. Hostinger still manages TLS and HTTP-to-HTTPS routing.
 - Search-query URLs containing `q` return `noindex, follow` with a canonical to their clean tool page. Login/account pages and API endpoints return noindex. Robots.txt permits crawling of HTML pages so crawlers can actually read the noindex rules; API paths are excluded from crawling.
 - Sample results are visibly labeled and wrapped in `data-nosnippet`, keeping illustrative counts out of search snippets. No pages are generated for sample keywords or unverified registration counts.
