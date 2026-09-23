@@ -16,6 +16,10 @@ Country-code classification uses a two-character final DNS label, including .ai,
 
 Search opens a full-width name overview with summary counts, a pinned exact-match row, sortable related counts, and all returned extensions displayed as wrapping links. Extension filters change the visible lists without changing Count or Active totals. The Extension cards tab retains the exact-name grid and copy action. CSV exports reflect the selected view and retain sample/source labels. Partial extension lists are identified explicitly.
 
+Keyword-position radio buttons offer Any position (default), Beginning, and End. Changing an option reruns the current query; `position=beginning` or `position=end` is retained in shareable search URLs and restores on reload. The mode controls related-name matching, while the exact-name count stays separate. CSV files and WebMCP results include the selected mode. Bulk comparisons still report exact-name counts.
+
+The search API accepts `position=any|beginning|end` and rejects other values. The dotDB adapter forwards the documented `position` parameter and caches each query/position separately (see https://dotdb.com/api-document). Demo searches use a fixed illustrative collection, so partial keywords can find related samples even when an exact-name count is unknown; unknown counts remain null. Production live-provider access is still not enabled by these controls.
+
 The optional `activeCount` on search results and related matches means a verified active website count. Current sample and dotDB adapters do not supply website-activity data, so the interface and CSV show “Not checked.” Missing activity is never inferred from zone presence or treated as zero; a supplied zero remains zero. This layout does not connect the VPS data pipeline or implement website crawling.
 
 ## Revenue paths
@@ -81,6 +85,8 @@ Social sign-in is available once the OAuth providers below are configured. No pa
 The npm migration was verified with a clean `npm ci`, production build, and HTTP smoke tests on Node.js 22.18.0 with npm 10.9.3.
 
 `npm run build` compiles the production Next.js server and checks TypeScript. Then run `npm run test:smoke` to verify the homepage, logo, JS/CSS assets, single/bulk search, public Host routing behind a proxy, cross-origin rejection, and live mode without a key. Tests use local demo data and do not call dotDB.
+
+`npm run test:search` checks provider position parameters, mode-specific caching, exact-match fallback, partial coverage, and sample substring matching with deterministic mocked responses. The smoke suite also checks all three radio options and API modes. No real provider credentials or network requests are used by the adapter test.
 
 
 TypeScript passed. Desktop and a 390px responsive frame were checked in the browser. Search normalization, extension filters, unknown-name null results, bulk deduplication, invalid rows, data explanations, and exported CSV contents were verified. The CSV export retains sample labels and escapes formula-like cell values. WebMCP actions are feature-detected, but the QA browser did not expose modelContext, so that optional integration could not be exercised. Live provider responses require a licensed API key and have not been integration-tested.

@@ -36,6 +36,24 @@ try {
   const single = await (await fetch(`${base}/api/search?q=cypress`)).json();
   assert.equal(single.source, 'demo');
   assert.equal(single.total, 48);
+  assert.equal(single.position, 'any');
+  for (const label of ['Any position', 'Beginning', 'End']) assert.ok(html.includes(label));
+  assert.equal((html.match(/type="radio"/g) || []).length, 3);
+  const positionResult = async (q, position) => (await fetch(`${base}/api/search?${new URLSearchParams({q,position})}`)).json();
+  const beginning = await positionResult('CYPRESS.com', 'beginning');
+  const ending = await positionResult('cypress', 'end');
+  assert.equal(beginning.total, single.total, 'Changing position must not change the exact count');
+  assert.equal(ending.total, single.total);
+  assert.deepEqual(beginning.related.map(row => row.name).sort(), ['cypressgroup', 'cypresslabs']);
+  assert.deepEqual(ending.related.map(row => row.name).sort(), ['getcypress', 'mycypress']);
+  assert.equal(single.related.length, 4);
+  const partial = await positionResult('cyp', 'beginning');
+  assert.equal(partial.total, null, 'An unknown exact sample must not become zero');
+  assert.equal(partial.related.length, 3);
+  assert.ok(partial.related.every(row => row.name.startsWith('cyp')));
+  assert.equal((await positionResult('cyp', 'end')).related.length, 0);
+  assert.equal((await fetch(`${base}/api/search?q=cypress&position=shuffle`)).status, 400);
+  assert.equal((await fetch(`${base}/api/search?q=cypress&position=`)).status, 400);
   assert.equal((await (await fetch(`${base}/api/search?q=unknownregcountword`)).json()).total, null);
   // Use node:http so the proxy test can set Host explicitly (fetch may replace it).
   const bulk = (origin, host) => new Promise((resolve, reject) => {
@@ -61,7 +79,7 @@ try {
   const unconfigured = await fetch(`${liveBase}/api/search?q=cypress`);
   assert.equal(unconfigured.status, 503);
   assert.match((await unconfigured.json()).error, /not been connected/);
-  console.log('Passed: homepage, logo, JS/CSS, search, bulk, proxy host, cross-origin rejection, and runtime live-mode configuration.');
+  console.log('Passed: homepage, logo, JS/CSS, keyword-position searches, unknown counts, bulk, proxy host, cross-origin rejection, and runtime live-mode configuration.');
 } finally {
   await Promise.all(servers.map(async child => {
     if (child.exitCode !== null) return;
