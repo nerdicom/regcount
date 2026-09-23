@@ -1,4 +1,19 @@
 /* Compact research workspace and clearly separated commercial placements. */
+:root { --logo-teal: #02c4ad; --logo-amber: #fd9701; --logo-violet: #7d56fb; }
+/* Small accents echo the three bars inside the globe. */
+.tiny-bars i { background: var(--logo-teal); }
+.tiny-bars i:nth-child(2) { background: var(--logo-amber); }
+.tiny-bars i:nth-child(3) { background: var(--logo-violet); }
+.research-shell .results-metrics>div { background: #e3f1ed; box-shadow: inset 0 3px var(--logo-teal); }
+.research-shell .results-metrics>div:nth-child(2) { background: #f8efdf; box-shadow: inset 0 3px var(--logo-amber); }
+.research-shell .results-metrics>div:nth-child(3) { background: #eee8f7; box-shadow: inset 0 3px var(--logo-violet); }
+.research-shell .hero-bulk-link>svg, .next-step:first-child .next-step-icon { color: #087f73; }
+.next-step:nth-child(2) .next-step-icon { color: #6b48b4; }
+.research-shell .sponsor-mark { background: #f8e8ca; color: #80521a; }
+.search-content-compact .illustrated-guide { border-top: 3px solid var(--logo-teal); }
+.search-content-compact .illustrated-guide.guide-color-2 { border-top-color: var(--logo-amber); }
+.search-content-compact .illustrated-guide.guide-color-3 { border-top-color: var(--logo-violet); }
+
 .site-header.product-header { height: 72px; }
 .product-header .brand { font-size: 1.55rem; letter-spacing: -.9px; }
 .product-header .brand img { width: 45px; height: 45px; }
