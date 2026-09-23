@@ -4,6 +4,10 @@ This is the first VPS deployment step for the CZDS data pipeline. The existing
 Next.js website continues to use its current provider settings. This installer
 does not switch the website to live data or download ICANN zone files.
 
+Once the database is healthy, continue with the [CZDS pilot](czds/README.md)
+and `install-czds.sh`. That separate installer adds private zone processing
+without changing this foundation's configuration or public networking.
+
 ## Target and requirements
 
 - Hostinger KVM 4: 4 vCPU, 16 GB RAM, 200 GB disk.
