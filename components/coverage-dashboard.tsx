@@ -3,7 +3,7 @@ import {useCallback,useEffect,useState} from 'react';
 import Link from 'next/link';
 import {Download,RefreshCw} from 'lucide-react';
 import {csvCell,type ZoneCoverage} from '@/lib/domains';
-const priorityExtensions=['ai','si','com','xyz','io'];
+const priorityExtensions=['com','ai','si','io','dev','xyz'];
 export function CoverageDashboard() {
   const [data,setData]=useState<{coverage:ZoneCoverage;checkedAt:string}|null>(null),[error,setError]=useState(''),[loading,setLoading]=useState(true);
   const [filter,setFilter]=useState('');

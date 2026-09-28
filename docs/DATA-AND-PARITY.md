@@ -6,6 +6,36 @@ dotDB's public [search](https://dotdb.com/search?keyword=agent&position=any),
 [FAQ](https://dotdb.com/faq), [API documentation](https://dotdb.com/api-document),
 [pricing](https://dotdb.com/pricing), and [keyword insights](https://dotdb.com/insights).
 
+## Verified live coverage, September 28, 2026 UTC
+
+The public `/api/search?q=agent&position=any` response at 05:20 UTC reported
+14 imported zones: .app, .biz, .cloud, .dev, .info, .online, .org, .pro,
+.shop, .site, .store, .tech, .xyz and .zone. All snapshots were less than
+72 hours old. These observations are a dated check, not hard-coded UI data.
+
+| Requested extension | Observed result |
+| --- | --- |
+| .dev | 770,731 DNS-delegated domain records |
+| .xyz | 10,231,289 DNS-delegated domain records |
+| .com, .ai, .si, .io | Not present in the imported index |
+
+DotDB's public [extension statistics](https://dotdb.com/statistics), generated
+September 27, expose these ten named extensions: .com, .de, .net, .org, .xyz,
+.co.uk, .cn, .top, .ru and .info. The remaining rows are masked on the public
+page. The public view is therefore insufficient to assert an exact complete
+extension inventory. It must not be treated as a downloadable domain feed.
+RegCount currently covers three of those ten visible extensions: .org, .xyz
+and .info. Prioritize .com and .net access/capacity, then .top through CZDS;
+.de, .co.uk, .cn and .ru need separately verified sources and multi-part suffix
+handling where applicable. A complete comparison requires DotDB's supported
+extension inventory from an authorized account/export or its operator.
+
+The next VPS check is `regcount-czds approved` followed by
+`regcount-czds progress`. These report current approvals and queue state;
+neither downloads a new zone. The GitHub integration cannot execute commands
+on the VPS. Do not mark a missing feed connected until an actual committed
+import appears in the live coverage response.
+
 ## What this release changes
 
 | Capability | RegCount implementation | Remaining work |
@@ -77,12 +107,12 @@ A WHOIS lookup is not a bulk domain feed. No recurring .io source with permissio
 for RegCount search and exports has been configured. Obtain an authorized feed
 and its format before connecting it to the index.
 
-### .xyz
+### .dev and .xyz
 
-The existing CZDS queue includes .xyz. Coverage is determined from committed
+The existing CZDS queue includes .dev and .xyz. Coverage is determined from committed
 imports returned by the private API, never by a hard-coded count or the mere
-presence of .xyz in the schedule. The coverage page highlights all five requested
-extensions: .ai, .si, .com, .xyz and .io.
+presence of an extension in the schedule. The coverage page highlights all six requested
+extensions: .com, .ai, .si, .io, .dev and .xyz.
 
 ### Commercial supplier candidate
 
