@@ -23,20 +23,20 @@
 
 /* RegCount product identity and editorial layouts. */
 :root {
-  --background: #e7ebef;
-  --foreground: #17263d;
-  --card: #f5f4f0;
-  --card-foreground: #17263d;
-  --popover: #f5f4f0;
-  --popover-foreground: #17263d;
-  --secondary: #dfe6ee;
-  --muted: #e3e8ed;
-  --muted-foreground: #4b5c73;
-  --border: #cbd3de;
-  --input: #b9c6d6;
-  --surface-raised: #faf9f5;
-  --text-body: #344660;
-  --text-secondary: #4b5c73;
+  --background: #f7f9fc;
+  --foreground: #172b45;
+  --card: #ffffff;
+  --card-foreground: #172b45;
+  --popover: #ffffff;
+  --popover-foreground: #172b45;
+  --secondary: #edf2f8;
+  --muted: #f0f4f8;
+  --muted-foreground: #586b82;
+  --border: #e0e7ef;
+  --input: #c8d4e3;
+  --surface-raised: #ffffff;
+  --text-body: #485d75;
+  --text-secondary: #586b82;
 }
 .product-header { height: 86px; }
 .product-header .header-inner { gap: 30px; }
