@@ -8,10 +8,12 @@
   "scripts": {
     "dev": "next dev --hostname 0.0.0.0",
     "build": "next build --webpack",
-    "start": "next start --hostname 0.0.0.0",
+    "postbuild": "node scripts/prepare-standalone.mjs",
+    "start": "node scripts/start.mjs",
     "lint": "eslint . --ignore-pattern .next",
     "typecheck": "tsc --noEmit",
     "test:smoke": "node scripts/smoke-test.mjs",
+    "test:deployment": "node scripts/deployment-test.mjs",
     "test:search": "node scripts/search-test.mjs",
     "test:czds": "node scripts/czds-test.mjs",
     "test:research": "node scripts/research-test.mjs",

@@ -85,6 +85,19 @@ Use Hostinger **Node.js Web App** deployment with GitHub, rather than the PHP/st
 | Build output directory | `.next` |
 | Start command, if requested | `npm start` |
 
+The build explicitly produces Next.js standalone output. Its `postbuild` step
+copies public files and compiled JS/CSS into `.next/standalone`, alongside the
+traced runtime dependencies. `npm start` launches that generated server, binds
+to `0.0.0.0`, and preserves the hosting platform's `PORT`. The Hostinger Next.js
+preset and `.next` output setting stay the same.
+
+After building, `npm run test:deployment` copies the runtime package to a
+temporary directory and verifies startup, assets, and a sample search without
+the source checkout's dependencies. `GET /api/health` returns an uncached
+application-health response and the release marker; it does not query the VPS
+or reveal credentials. A successful local package check does not establish
+that Hostinger launched the app, or that the private search service is healthy.
+
 Leave `REGCOUNT_LIVE_ENABLED=false` while reviewing sample data. No API key or database is needed in demo mode. Configure live-provider credentials in Hostinger's Environment Variables, never in GitHub.
 
 If the log reports a missing `corepack/.../pnpm/.../bin/pnpm.cjs`, change Hostinger's package manager to **npm** and its build command to **npm run build**. This repository uses `package-lock.json` and does not require pnpm or Corepack.
