@@ -146,3 +146,33 @@ Facebook uses Graph API v25.0 with `public_profile` and `email`. No friends, pos
 ### Authentication verification
 
 After a build, run `npm run test:auth` for missing-configuration behavior, protected accounts, provider URLs, CSRF/state protection, safe return URLs, session validation/expiry, and sign-out. Tests mock Google discovery, block external provider calls, create disposable local session credentials, and never log in to a real Google or Facebook account. Run `npm run test:smoke` for existing search behavior. Real provider consent and callback completion must also be checked after adding the production client credentials.
+
+## Supplemental live exact-name coverage
+
+When the CZDS provider is enabled, basic single-name results also call
+`GET /api/live-extensions?q=<name>`. It checks a fixed set of 32 popular
+suffixes using Google Public DNS NS queries; it needs no account or API key.
+Already indexed suffixes are excluded. Exact-owner NS answers with a negative
+random-name wildcard control can add unique suffixes to the displayed exact
+count. CNAMEs, parent-zone records, empty answers, NXDOMAIN, rate limits,
+timeouts and failed controls never establish a positive match. No website
+activity or availability is inferred.
+
+The live result has a separate evidence model, per-observation timestamps,
+source labels and CSV provenance. `/api/search` and the private VPS contracts
+continue to return indexed data; the browser combines evidence for the exact
+row only. Advanced searches, related-name rows and bulk comparisons remain
+index-only. `/api/coverage` advertises live-check capabilities separately from
+committed zone records. This is not a bulk ccTLD feed or full DotDB parity.
+
+Requests use a fixed HTTPS resolver, no redirects, no client-subnet forwarding,
+a 64 KiB response cap, 8-second per-request timeout and 20-second batch budget.
+Each process permits two in-flight searches with eight workers each, coalesces
+identical in-flight searches, bounds DNS caches to 2,000 entries and caps new
+batches at 30/minute. Unknowns are not cached as absence. Positive observations
+are cached no longer than the target/control lifetimes (currently <=30s).
+These process-local limits complement hosting-level traffic controls.
+
+Set `REGCOUNT_LIVE_DNS_ENABLED=false` to disable supplemental DNS checks.
+`npm run test:dns` verifies evidence rules and failure handling without network
+access. Privacy and methodology pages document the resolver and coverage scope.
