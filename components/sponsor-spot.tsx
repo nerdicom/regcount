@@ -1,11 +1,15 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowUpRight, Code2 } from 'lucide-react';
 import { configuredSponsor, NERDI_URL } from '@/lib/promotions';
 
 export function SponsorSpot() {
   const sponsor = configuredSponsor(process.env);
-  return <aside className="sponsor-spot" aria-label={sponsor ? 'Sponsored placement' : 'Nerdi owner promotion'} data-nosnippet>
-    <div className="sponsor-mark" aria-hidden="true"><Code2 size={23}/></div>
+  return <aside className={`sponsor-spot${sponsor ? '' : ' sponsor-spot-nerdi'}`} aria-label={sponsor ? 'Sponsored placement' : 'Nerdi owner promotion'} data-nosnippet>
+    {sponsor ? <div className="sponsor-mark" aria-hidden="true"><Code2 size={23}/></div> : <a className="sponsor-logo" href={NERDI_URL} target="_blank" rel="sponsored noopener noreferrer" referrerPolicy="no-referrer">
+      <Image src="/nerdi-logo.png" alt="Nerdi" width={80} height={80} sizes="(max-width: 640px) 64px, 80px"/>
+      <span className="sr-only"> (opens in a new tab)</span>
+    </a>}
     <div className="sponsor-message">
       <span className="promotion-label">{sponsor ? `SPONSORED · ${sponsor.name}` : 'NERDI · OWNER PROMOTION'}</span>
       <h2>{sponsor?.headline ?? 'Your next name. Your next website.'}</h2>

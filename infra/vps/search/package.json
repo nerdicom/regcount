@@ -4,6 +4,6 @@
   "private": true,
   "type": "module",
   "engines": { "node": ">=24" },
-  "scripts": { "start": "node server.mjs", "test": "node --test test-service.mjs" },
+  "scripts": { "start": "node server.mjs", "test": "node --test test-service.mjs test-advanced.mjs test-verify.mjs" },
   "dependencies": { "pg": "8.23.0" }
 }

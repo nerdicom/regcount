@@ -25,7 +25,7 @@ function ActiveCount({ value }: { value: number | null }) {
     : <strong className="activity-count">{value.toLocaleString()}</strong>;
 }
 
-export function SearchResults({ result, onSelectName }: { result: SearchResult; onSelectName: (name: string) => void }) {
+export function SearchResults({ result, onSelectName, onPage }: { result: SearchResult; onSelectName: (name: string) => void; onPage?:(page:number)=>void }) {
   const [view, setView] = useState('overview');
   const [kind, setKind] = useState('all');
   const [filter, setFilter] = useState('');
@@ -33,6 +33,8 @@ export function SearchResults({ result, onSelectName }: { result: SearchResult; 
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState('');
   const total = result.total;
+  const exactName=result.exactName??result.query;
+  const research=result.research;
   const positionLabel = SEARCH_POSITIONS.find(option => option.value === result.position)!.label;
   const active = activeCount(result.activeCount, total);
   const generic = result.suffixes.filter(suffix => extensionKind(suffix) === 'generic').length;
@@ -42,8 +44,8 @@ export function SearchResults({ result, onSelectName }: { result: SearchResult; 
     && suffix.includes(filter.trim().toLowerCase().replace(/^\./, ''));
   const exactSuffixes = result.suffixes.filter(matchesFilter);
   const rows: ResultRow[] = [
-    { name: result.query, count: total, activeCount: result.activeCount, suffixes: result.suffixes, exact: true },
-    ...[...result.related].sort((a, b) => (descending ? b.count - a.count : a.count - b.count) || a.name.localeCompare(b.name))
+    { name: exactName, count: total, activeCount: result.activeCount, suffixes: result.suffixes, exact: true },
+    ...(research?result.related:[...result.related].sort((a, b) => (descending ? b.count - a.count : a.count - b.count) || a.name.localeCompare(b.name)))
       .map(row => ({ ...row, exact: false })),
   ];
   const unknownActivity = rows.some(row => activeCount(row.activeCount, row.count) === null);
@@ -56,20 +58,21 @@ export function SearchResults({ result, onSelectName }: { result: SearchResult; 
           activeCount(row.activeCount, row.count) ?? 'Not checked',
           row.suffixes.filter(matchesFilter).map(suffix => `.${suffix}`).join(' '), sourceLabel, hasFilter ? 'Yes' : 'No', positionLabel])]
       : [['Keyword', 'Domain', 'Extension', 'Type', 'Data source', 'Keyword position'],
-        ...exactSuffixes.map(suffix => [result.query, `${result.query}.${suffix}`, `.${suffix}`, extensionKind(suffix), sourceLabel, positionLabel])];
+        ...exactSuffixes.map(suffix => [result.query, `${exactName}.${suffix}`, `.${suffix}`, extensionKind(suffix), sourceLabel, positionLabel])];
+    if(research){exported[0].push('Query','Search filters','Page','Export scope','Snapshot');for(const row of exported.slice(1))row.push(result.query,JSON.stringify(research.options),research.page,'This page only; exact row is repeated on every page',research.snapshot);}
     if(result.coverage){exported[0].push('Covered extensions','Snapshot download times','Missing priority extensions');for(const row of exported.slice(1))row.push(result.coverage.zones.map(z=>'.'+z.tld).join(' '),result.coverage.zones.map(z=>'.'+z.tld+' '+z.downloadedAt).join('; '),result.coverage.requiredMissing.map(t=>'.'+t).join(' '));}
     const blob = new Blob(['\uFEFF' + exported.map(row => row.map(csvCell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `regcount-${result.query}-${result.position}-${view}-${result.source}.csv`;
+    link.download = `regcount-${exactName}-${result.position}-${view}-${result.source}${research?`-page-${research.page}`:''}.csv`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   async function copyDomains() {
     try {
-      await navigator.clipboard.writeText(exactSuffixes.map(suffix => `${result.query}.${suffix}`).join('\n'));
+      await navigator.clipboard.writeText(exactSuffixes.map(suffix => `${exactName}.${suffix}`).join('\n'));
       setCopyError('');
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -84,9 +87,9 @@ export function SearchResults({ result, onSelectName }: { result: SearchResult; 
       <span className="sample-badge">{result.source === 'demo' ? 'SAMPLE DATA' : result.source === 'czds' ? 'CZDS SNAPSHOTS' : 'DOTDB DATA'}</span>
     </div>
     <dl className="results-metrics" aria-label="Search summary">
-      <div className="metric-primary"><dt>Exact-match count</dt><dd>{total === null ? '—' : total.toLocaleString()}</dd><dd className="metric-detail">{total === null ? 'No exact-name sample' : `Extensions for ${result.query}`}</dd></div>
-      <div><dt>Active websites</dt><dd>{active === null ? '—' : active.toLocaleString()}</dd><dd className="metric-detail">{active === null ? 'Activity not checked' : 'Verified active exact matches'}</dd></div>
-      <div><dt>Related names shown</dt><dd>{result.relatedPartial&&!result.related.length?'—':result.related.length.toLocaleString()}</dd><dd className="metric-detail">{result.relatedPartial ? 'Limited results · see note below' : 'Separate from your exact count'}</dd></div>
+      <div className="metric-primary"><dt>Exact-match count</dt><dd>{total === null ? '—' : total.toLocaleString()}</dd><dd className="metric-detail">{total === null ? 'No exact-name sample' : `Extensions for ${exactName}`}</dd></div>
+      <div><dt>{research?'Matching names':'Active websites'}</dt><dd>{research?(research.keywordCount?.toLocaleString()??'—'):(active === null ? '—' : active.toLocaleString())}</dd><dd className="metric-detail">{research?'All filtered matches, including exact':active === null ? 'Activity not checked' : 'Verified active exact matches'}</dd></div>
+      <div><dt>{research?'Matching domains':'Related names shown'}</dt><dd>{research?(research.domainCount?.toLocaleString()??'—'):(result.relatedPartial&&!result.related.length?'—':result.related.length.toLocaleString())}</dd><dd className="metric-detail">{research?'Name + extension pairs in coverage':result.relatedPartial ? 'Limited results · see note below' : 'Separate from your exact count'}</dd></div>
     </dl>
     <div className="results-coverage">
       <span>Keyword position: <strong>{positionLabel}</strong></span>
@@ -95,6 +98,7 @@ export function SearchResults({ result, onSelectName }: { result: SearchResult; 
       <span><i className="key-dot violet"/>{country.toLocaleString()} country code</span></>}
       {total !== null && result.suffixes.length < total && <span className="coverage-warning">The source returned a partial extension list.</span>}
     </div>
+    {research&&<p className="results-filter-note">{research.options.sort==='name'?'Name A–Z':research.options.sort==='count_desc'?'Most extensions first':'Fewest extensions first'} across all filtered matches in covered extensions. Counts reflect your selected filters. {result.source==='demo'&&'Illustrative sample data only.'}</p>}
     {total === null && <p className="results-filter-note">{result.message}</p>}
     {result.relatedMessage&&<p className="results-filter-note" role="status">{result.relatedMessage}</p>}
     {result.coverage&&<CoverageNote coverage={result.coverage}/>}
@@ -104,7 +108,7 @@ export function SearchResults({ result, onSelectName }: { result: SearchResult; 
           <TabsTrigger value="overview">Name overview</TabsTrigger>
           <TabsTrigger value="extensions">Extension cards</TabsTrigger>
         </TabsList>
-        <button className="results-export" onClick={exportResults} disabled={view === 'extensions' && !exactSuffixes.length}><Download size={16}/>Download CSV</button>
+        <button className="results-export" onClick={exportResults} disabled={view === 'extensions' && !exactSuffixes.length}><Download size={16}/>{research?'Download this page':'Download CSV'}</button>
       </div>
       <div className="overview-filters">
         <div className="filter-buttons" role="group" aria-label="Extension type">
@@ -120,8 +124,8 @@ export function SearchResults({ result, onSelectName }: { result: SearchResult; 
           <caption className="sr-only">Exact and related names with extension counts, verified website activity where available, and all returned extensions.</caption>
           <thead role="rowgroup"><tr role="row">
             <th scope="col" role="columnheader">Name</th>
-            <th scope="col" role="columnheader" aria-sort={descending ? 'descending' : 'ascending'}>
-              <button onClick={() => setDescending(!descending)} aria-label={`Sort related names by count ${descending ? 'ascending' : 'descending'}`}>Count {descending ? <ArrowDown size={14}/> : <ArrowUp size={14}/>}</button>
+            <th scope="col" role="columnheader" aria-sort={research?(research.options.sort==='count_desc'?'descending':research.options.sort==='count_asc'?'ascending':'none'):descending ? 'descending' : 'ascending'}>
+              {research?<span>Count</span>:<button onClick={() => setDescending(!descending)} aria-label={`Sort related names by count ${descending ? 'ascending' : 'descending'}`}>Count {descending ? <ArrowDown size={14}/> : <ArrowUp size={14}/>}</button>}
             </th>
             <th scope="col" role="columnheader">Active</th>
             <th scope="col" role="columnheader">Extensions <span className="column-hint">Full returned list</span></th>
@@ -145,11 +149,13 @@ export function SearchResults({ result, onSelectName }: { result: SearchResult; 
             </tr>;
           })}</tbody>
         </table>
-        <div className="results-bottom"><span>Exact match stays first. Related names sort by count.</span><span>{rows.length} names shown{result.source === 'demo' ? ' · Sample data' : ''}</span></div>
+        <div className="results-bottom"><span>{research?'Exact match stays first. Related names use your selected sort.':'Exact match stays first. Related names sort by count.'}</span><span>{rows.length} names shown{result.source === 'demo' ? ' · Sample data' : ''}</span></div>
+        {research&&research.totalPages!==null&&<div className="research-pagination" aria-label="Search pages"><button disabled={research.page===1} onClick={()=>onPage?.(research.page-1)}>Previous</button><span>Page {research.page} of {research.totalPages.toLocaleString()} · {research.relatedTotal?.toLocaleString()} related names</span><button disabled={!research.hasNext} onClick={()=>onPage?.(research.page+1)}>Next</button></div>}
+        {research&&research.totalPages!==null&&research.totalPages>research.pageLimit&&<p className="results-filter-note">Browse the first {research.pageLimit} pages. Narrow your search to explore more specific matches. CSV downloads include the displayed page only.</p>}
       </TabsContent>
       <TabsContent value="extensions">
-        <p className="extension-cards-intro">Exact-match extensions for <strong>{result.query}</strong></p>
-        <div className="extensions-grid">{exactSuffixes.map(suffix => <a key={suffix} href={`https://${result.query}.${suffix}`} target="_blank" rel="noopener noreferrer" className={`extension-chip ${extensionKind(suffix)}`} aria-label={`Open ${result.query}.${suffix} in a new tab`}><span>.{suffix}</span><ArrowUpRight size={14}/></a>)}</div>
+        <p className="extension-cards-intro">Exact-match extensions for <strong>{exactName}</strong></p>
+        <div className="extensions-grid">{exactSuffixes.map(suffix => <a key={suffix} href={`https://${exactName}.${suffix}`} target="_blank" rel="noopener noreferrer" className={`extension-chip ${extensionKind(suffix)}`} aria-label={`Open ${exactName}.${suffix} in a new tab`}><span>.{suffix}</span><ArrowUpRight size={14}/></a>)}</div>
         {!exactSuffixes.length && <div className="filter-empty">{total === null ? 'No exact-name sample is available. See Name overview for related sample names.' : hasFilter ? 'No extensions match this filter.' : 'No extensions returned for this name.'}</div>}
         <div className="results-bottom"><span>Showing {exactSuffixes.length} of {result.suffixes.length} returned extensions{result.source === 'demo' ? ' · Sample data' : ''}</span><button onClick={copyDomains} disabled={!exactSuffixes.length}>{copied ? <Check size={15}/> : <Copy size={15}/>} {copied ? 'Copied' : 'Copy domains'}</button></div>
         {copyError && <p className="results-filter-note" role="alert">{copyError}</p>}

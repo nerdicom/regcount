@@ -16,11 +16,20 @@ export function validateCoverage(value: unknown): ZoneCoverage {
   if (new Set(zones.map(zone=>zone.tld)).size !== zones.length || value.requiredMissing.some(t=>zones.some(zone=>zone.tld===t))) return invalid();
   return {basis:'delegated-domains', zones, requiredMissing:value.requiredMissing};
 }
+export async function readIndexStatus() {
+  const raw = await requestIndex('/v1/status');
+  if (!isObject(raw) || raw.status !== 'ready') return invalid();
+  return {
+    coverage: validateCoverage(raw.coverage),
+    // Older deployed services do not implement /v2/search.
+    capabilities: { advancedSearch: isObject(raw.capabilities) && raw.capabilities.advancedSearch === true },
+  };
+}
 function suffixes(value: unknown, coverage: ZoneCoverage): string[] {
   if (!Array.isArray(value) || !value.every(tld) || new Set(value).size !== value.length || value.some(t=>!coverage.zones.some(zone=>zone.tld===t))) return invalid();
   return value;
 }
-async function request(path: string, body?: object): Promise<unknown> {
+export async function requestIndex(path: string, body?: object): Promise<unknown> {
   const token = process.env.REGCOUNT_CZDS_API_TOKEN;
   let origin: URL;
   try { origin = new URL(process.env.REGCOUNT_CZDS_API_URL || ''); } catch { throw new ProviderError('The domain index connection is not configured.',503); }
@@ -29,12 +38,17 @@ async function request(path: string, body?: object): Promise<unknown> {
   try { response = await fetch(new URL(path,origin), {method:body?'POST':'GET',headers:{Authorization:`Bearer ${token}`,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,redirect:'error',cache:'no-store',signal:AbortSignal.timeout(12000)}); }
   catch { throw new ProviderError('The domain index did not respond. Please try again.',503); }
   if (response.status === 429) throw new ProviderError('Search is busy. Please try again shortly.',429);
+  if (path.startsWith('/v2/') && response.status===404) throw new ProviderError('Advanced search is awaiting activation. Basic search is available; the site owner needs to update the search service.',503);
+  if (path.startsWith('/v2/') && [400,409,422].includes(response.status)) {
+    const message = response.status===409?'The index refreshed between pages. Run the search again.':response.status===422?'One or more selected extensions are outside current coverage. Check Coverage and remove those extensions.':'Check your advanced search options.';
+    throw new ProviderError(message,response.status);
+  }
   if (!response.ok) throw new ProviderError('The domain index is temporarily unavailable. Please try again.',503);
   try { const text=await response.text(); if(text.length>1000000)return invalid(); return JSON.parse(text); } catch { return invalid(); }
 }
 export async function searchCZDS(query: string, position: SearchPosition, exactOnly = false): Promise<SearchResult> {
   const params=new URLSearchParams({q:query,position,...(exactOnly?{exact:'1'}:{})});
-  const raw=await request(`/v1/search?${params}`);
+  const raw=await requestIndex(`/v1/search?${params}`);
   if (!isObject(raw) || raw.source!=='czds' || raw.query!==query || raw.position!==position || !integer(raw.total) || !Array.isArray(raw.related) || raw.related.length>100 || typeof raw.relatedPartial!=='boolean' || !validDate(raw.fetchedAt)) return invalid();
   const coverage=validateCoverage(raw.coverage), list=suffixes(raw.suffixes,coverage);
   if (list.length!==raw.total) return invalid();
@@ -48,7 +62,7 @@ export async function searchCZDS(query: string, position: SearchPosition, exactO
     ...(typeof raw.relatedMessage==='string'?{relatedMessage:raw.relatedMessage.slice(0,400)}:{}),fetchedAt:raw.fetchedAt,coverage};
 }
 export async function bulkCZDS(queries: string[]): Promise<{source:'czds';results:BulkRow[];coverage:ZoneCoverage}> {
-  const raw=await request('/v1/bulk',{queries});
+  const raw=await requestIndex('/v1/bulk',{queries});
   if(!isObject(raw)||raw.source!=='czds'||!Array.isArray(raw.results)||raw.results.length!==queries.length)return invalid();
   const coverage=validateCoverage(raw.coverage);
   const results=raw.results.map(row=>{

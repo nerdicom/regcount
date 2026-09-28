@@ -78,6 +78,7 @@ class ManageTests(unittest.TestCase):
             with self.subTest(code=code), patch.object(manage.subprocess, 'run', return_value=subprocess.CompletedProcess([], code, stdout='sensitive-output', stderr='sensitive-output')):
                 with self.assertRaisesRegex(RuntimeError, expected) as error:
                     manage.request('/v1/status')
+
                 self.assertNotIn('sensitive-output', str(error.exception))
         with patch.object(manage.subprocess, 'run', side_effect=subprocess.TimeoutExpired([], 20)):
             with self.assertRaisesRegex(RuntimeError, 'timed out'):
@@ -86,6 +87,19 @@ class ManageTests(unittest.TestCase):
             with self.subTest(body=body), patch.object(manage.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, stdout=body)):
                 with self.assertRaisesRegex(RuntimeError, 'invalid readiness'):
                     manage.request('/v1/status')
+
+    def test_advanced_verification_uses_container_and_fails_closed(self):
+        with patch.object(manage.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0)) as run, patch.object(manage, 'private_file') as secret:
+            manage.verify_advanced()
+            self.assertEqual(run.call_args.args[0], manage.COMPOSE + ['exec', '-T', 'api', 'node', 'verify-advanced.mjs'])
+            secret.assert_not_called()
+        for code in (1, 2):
+            with patch.object(manage.subprocess, 'run', return_value=subprocess.CompletedProcess([], code)):
+                with self.assertRaisesRegex(RuntimeError, 'did not pass'):
+                    manage.verify_advanced()
+        with patch.object(manage.subprocess, 'run', side_effect=subprocess.TimeoutExpired([], 55)):
+            with self.assertRaisesRegex(RuntimeError, 'timed out'):
+                manage.verify_advanced()
 
 if __name__ == '__main__':
     unittest.main()

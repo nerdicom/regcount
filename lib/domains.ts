@@ -16,7 +16,9 @@ export function matchesPosition(name: string, query: string, position: SearchPos
 export type DomainMatch = {name: string; count: number; activeCount?: number | null; suffixes: string[]};
 export type DataSource = 'demo' | 'dotdb' | 'czds';
 export type ZoneCoverage = {basis: 'delegated-domains'; zones: {tld: string; domainCount: number; downloadedAt: string; importedAt: string; stale: boolean}[]; requiredMissing: string[]};
-export type SearchResult = {query: string; position: SearchPosition; source: DataSource; total: number | null; activeCount?: number | null; suffixes: string[]; related: DomainMatch[]; relatedPartial: boolean; relatedMessage?: string; fetchedAt: string | null; message?: string; coverage?: ZoneCoverage};
+export type ResearchOptions = import('../infra/vps/search/query.mjs').ResearchOptions;
+export type ResearchMeta = {version:2; options:ResearchOptions; snapshot:string; page:number; pageSize:number; totalPages:number|null; keywordCount:number|null; domainCount:number|null; relatedTotal:number|null; timedOut:boolean; hasNext:boolean; exportScope:'page'; pageLimit:number};
+export type SearchResult = {query: string; exactName?:string; research?:ResearchMeta; position: SearchPosition; source: DataSource; total: number | null; activeCount?: number | null; suffixes: string[]; related: DomainMatch[]; relatedPartial: boolean; relatedMessage?: string; fetchedAt: string | null; message?: string; coverage?: ZoneCoverage};
 export type BulkRow = {query: string; total: number | null; source: DataSource; suffixes: string[]; error?: string; coverage?: ZoneCoverage};
 export function sourceLabel(source: DataSource) { return source === 'demo' ? 'ILLUSTRATIVE SAMPLE — NOT VERIFIED' : source === 'czds' ? 'CZDS — DNS-DELEGATED DOMAINS IN COVERED ZONES' : 'dotDB'; }
 export const SAMPLE_NAMES = ['cypress', 'atlas', 'orbit', 'nova', 'outdoors', 'windmill'];
@@ -26,7 +28,7 @@ const samples: Record<string,string[]> = {
  orbit: common.slice(0,42), nova: [...common,...'art media life works travel global ventures capital games club link'.split(' ')], outdoors: common.slice(0,24), windmill: common.slice(0,18),
 };
 // Search one fixed illustrative collection, including the related-name examples.
-const sampleMatches: DomainMatch[] = Object.entries(samples).flatMap(([name, suffixes]) => [
+export const sampleMatches: DomainMatch[] = Object.entries(samples).flatMap(([name, suffixes]) => [
  {name, suffixes: [...new Set(suffixes)]},
  {name: `get${name}`, suffixes: common.slice(0,12)},
  {name: `${name}labs`, suffixes: common.slice(0,9)},

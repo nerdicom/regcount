@@ -24,7 +24,7 @@ export function coverageFromRows(rows, now = Date.now()) {
   return { basis: 'delegated-domains', zones,
     requiredMissing: REQUIRED_TLDS.filter(tld => !zones.some(zone => zone.tld === tld)) };
 }
-async function transaction(pool, callback) {
+export async function transaction(pool, callback) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
@@ -91,5 +91,5 @@ export async function bulk(pool, queries) {
   });
 }
 export async function status(pool) {
-  return transaction(pool, async (_client, coverage) => ({ status: 'ready', coverage }));
+  return transaction(pool, async (_client, coverage) => ({ status: 'ready', coverage, capabilities: { advancedSearch: true } }));
 }
