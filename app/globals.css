@@ -587,18 +587,3 @@ button.result-keyword:hover { color: #0754f8; text-decoration: underline; text-u
   .research-layout-wide .research-sidebar { grid-template-columns: 1fr; gap: 18px; }
 }
 .footer-signature, .footer-bottom { color: #b5c5db; }
-/* Supplemental exact-name DNS checks. */
-.live-extension-note{margin:18px 0;padding:17px 20px;border:1px solid #bee3df;border-radius:14px;background:#f2faf8;color:#254e48}
-.live-extension-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.live-extension-heading strong,.live-extension-heading button{display:inline-flex;align-items:center;gap:7px}
-.live-extension-heading button{font-size:12px;border:1px solid #bed8d3;border-radius:8px;padding:6px 9px;background:white;cursor:pointer}
-.live-extension-note p{margin:9px 0;font-size:13px;line-height:1.6}
-.live-extension-note>small{display:block;color:#526b67;font-size:12px;line-height:1.6}
-.live-extension-note details{margin:12px 0}.live-extension-note summary{cursor:pointer;font-size:12px;font-weight:650}
-.live-check-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:7px;margin-top:10px}
-.live-check-list>span{display:flex;flex-direction:column;gap:2px;border:1px solid #dce7e4;background:#fff;border-radius:8px;padding:8px 10px;font-size:13px}
-.live-check-list small{font-size:10px;color:#6f7876}.live-check-list .live-check-confirmed{border-color:#82bbae}.live-check-confirmed small{color:#267565}
-.suffix-tag.suffix-live{border-style:dashed}.suffix-tag small{font-size:8px;margin-left:4px;font-weight:700;opacity:.8}
-.extension-chip small{font-size:10px;white-space:nowrap}.coverage-live-summary{margin:20px 0;padding:22px;border:1px solid #bee3df;border-radius:14px;background:#f2faf8}
-.coverage-live-summary h2{font-size:19px;margin:0 0 10px}.coverage-live-summary p,.coverage-live-summary small{line-height:1.7;font-size:13px}.coverage-live-summary p{margin:9px 0}
-@media(max-width:600px){.live-extension-note{padding:14px}.live-check-list{grid-template-columns:repeat(2,minmax(0,1fr))}}

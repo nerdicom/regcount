@@ -7,7 +7,7 @@ export const metadata = pageMetadata('Privacy Policy', 'How RegCount handles sig
 export default function PrivacyPage() {
   return <ContentLayout label="YOUR PRIVACY" title="Privacy policy" intro="This policy explains how information is handled when you use regcount.com, including Google and Facebook sign-in." breadcrumbs={[{ name: 'Privacy policy', path: '/privacy' }]}>
     <div className="guide-prose methodology-prose">
-      <p className="article-meta">Effective September 28, 2026</p>
+      <p className="article-meta">Effective September 23, 2026</p>
       <section><h2>Information used for sign-in</h2>
         <p>When you choose Google or Facebook sign-in, RegCount receives your name, the provider&apos;s account identifier, and your email address when the provider makes it available. Google may also supply a profile image with your basic profile; RegCount does not retain that image in your account session.</p>
         <p>We use these details to authenticate you, display your account, and maintain your signed-in session. Your Google or Facebook password is handled by that provider and is not received by RegCount. We request basic profile and email access; we do not request access to your posts, contacts, friends, or messages.</p>
@@ -18,7 +18,7 @@ export default function PrivacyPage() {
       </section>
       <section><h2>Domain searches</h2>
         <p>We process the names you submit to return search results and bulk comparisons. Single-name searches can appear in the page URL and your browser history. CSV exports are generated in your browser and saved wherever you choose to download them.</p>
-        <p>Sample results and searches of our imported CZDS index are processed by RegCount. When dotDB is configured as the source, the search term is sent to dotDB. Single-name searches of our index also check selected domain names using Google Public DNS over HTTPS; those domain names and our server IP are visible to that resolver. We send no sign-in details or visitor IP address with these DNS requests, and disable EDNS client-subnet forwarding. See <a href="https://developers.google.com/speed/public-dns/privacy">Google Public DNS privacy practices</a>. Results may be cached temporarily to avoid repeated requests.</p>
+        <p>Sample results are processed by RegCount. When a result is labeled as live provider data, the search term is sent to the named registration data provider, currently dotDB. We do not send your Google or Facebook account details with those search requests. Live results may be cached temporarily to avoid repeating provider requests.</p>
       </section>
       <section><h2>Hosting, service providers, and technical records</h2>
         <p>Hostinger provides our website hosting. Hosting and security systems may process technical information such as IP addresses, request URLs, browser details, timestamps, and errors to deliver and protect the service. These records may include a search term that appears in a URL and may remain after you sign out.</p>
