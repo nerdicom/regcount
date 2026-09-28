@@ -1,4 +1,4 @@
-export const NERDI_URL = 'https://www.nerdi.com/web-design/?utm_source=regcount&utm_medium=referral&utm_campaign=research';
+export const NERDI_URL = 'https://nerdi.com';
 export const DNLAUNCH_URL = 'https://dnlaunch.com/?page=browse&utm_source=regcount&utm_medium=referral&utm_campaign=research';
 export const ADVERTISING_EMAIL = 'info@regcount.com';
 export const ADVERTISING_MAILTO = `mailto:${ADVERTISING_EMAIL}?subject=${encodeURIComponent('Advertising on RegCount')}&body=${encodeURIComponent('Hi RegCount,\n\nI would like to discuss a sponsored placement.\n\nBusiness / product:\nWebsite:\nPreferred dates:\nBudget range:\nWhat we would like to promote:\n\nThank you!')}`;

@@ -24,7 +24,7 @@ flock -n 9 || fail 'Another search installation is running.'
 stage=$(mktemp -d "$target/.install.XXXXXX")
 trap 'rm -rf "$stage"' EXIT
 readonly base="https://raw.githubusercontent.com/nerdicom/regcount/$revision/infra/vps/search"
-files=(database.mjs http.mjs server.mjs manage.py Dockerfile package.json package-lock.json compose.yaml Caddyfile SHA256SUMS)
+files=(database.mjs advanced.mjs query.mjs http.mjs server.mjs verify-advanced.mjs manage.py Dockerfile package.json package-lock.json compose.yaml Caddyfile SHA256SUMS)
 for file in "${files[@]}"; do
   curl --proto '=https' --tlsv1.2 -fsS --connect-timeout 20 --max-time 120 "$base/$file" -o "$stage/$file"
 done

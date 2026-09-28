@@ -38,6 +38,7 @@ test('real PostgreSQL queries, coverage, bounded results, role permissions and H
     await assert.rejects(db.query('DELETE FROM domain_index.domains'), /permission denied/);
     await assert.rejects(db.query('SELECT * FROM domain_index.dev'), /permission denied/);
     assert.equal((await status(pool)).coverage.zones.length,2);
+    assert.equal((await status(pool)).capabilities.advancedSearch,true);
     assert.throws(()=>coverageFromRows([]),/No imported/);
 
     // The importer replaces partitions; a grant on the parent must still work.

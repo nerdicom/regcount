@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
 import { search, bulk, status, SearchError } from './database.mjs';
+import { advancedSearch } from './advanced.mjs';
 
 export function createSearchServer({ pool, token, now = Date.now }) {
   if (!/^[a-f0-9]{64}$/.test(token)) throw new Error('A 256-bit API token is required.');
@@ -26,6 +27,17 @@ export function createSearchServer({ pool, token, now = Date.now }) {
       const url = new URL(req.url, 'http://internal');
       let value;
       if (url.pathname === '/v1/status' && req.method === 'GET') value = await status(pool);
+      else if (url.pathname === '/v2/search' && req.method === 'GET') {
+        const key = 'v2:'+url.searchParams.toString();
+        const cached = cache.get(key);
+        // A requested snapshot must be checked against current committed zones.
+        if (!url.searchParams.get('snapshot') && cached?.expires > now()) value = cached.value;
+        else {
+          value = await advancedSearch(pool,url.searchParams);
+          if(cache.size>=500)cache.delete(cache.keys().next().value);
+          cache.set(key,{value,expires:now()+30000});
+        }
+      }
       else if (url.pathname === '/v1/search' && req.method === 'GET') {
         if ([...url.searchParams.keys()].some(key => !['q', 'position', 'exact'].includes(key)) ||
           [...new Set(url.searchParams.keys())].some(key => url.searchParams.getAll(key).length > 1)) throw new SearchError('Invalid parameters.', 400);

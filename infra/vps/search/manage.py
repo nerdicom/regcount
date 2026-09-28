@@ -152,6 +152,15 @@ def status():
     else:
         print('Private installation only. Next: add the DNS record, then run regcount-search publish data.regcount.com')
 
+def verify_advanced():
+    # The container reads its existing token. No secret enters argv or host output.
+    try:
+        result = subprocess.run(COMPOSE + ['exec', '-T', 'api', 'node', 'verify-advanced.mjs'], timeout=55)
+    except subprocess.TimeoutExpired:
+        raise RuntimeError('Advanced verification timed out. Retry when search traffic subsides.') from None
+    if result.returncode:
+        raise RuntimeError('Advanced verification did not pass. Review the checks above before activating the website controls.')
+
 def publish(value):
     if not re.fullmatch(r'(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,63}', value):
         raise RuntimeError('Provide a fully qualified lowercase hostname.')
@@ -181,6 +190,8 @@ def main():
         configure()
     elif command == 'status' and len(sys.argv) <= 2:
         status()
+    elif command == 'verify-advanced' and len(sys.argv) == 2:
+        verify_advanced()
     elif command == 'publish' and len(sys.argv) == 3:
         publish(sys.argv[2])
     elif command == 'hostinger' and len(sys.argv) == 2:
@@ -193,7 +204,7 @@ def main():
         print('REGCOUNT_CZDS_API_URL=https://' + value)
         print('REGCOUNT_CZDS_API_TOKEN=' + private_file('api-token'))
     else:
-        raise RuntimeError('Usage: regcount-search [status | publish HOSTNAME | hostinger]')
+        raise RuntimeError('Usage: regcount-search [status | verify-advanced | publish HOSTNAME | hostinger]')
 
 if __name__ == '__main__':
     try:

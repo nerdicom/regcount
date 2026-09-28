@@ -18,7 +18,7 @@ try {
   await writeFile(join(folder,name+'.mjs'),compiled.replace(/from '(\.\/[^']+)'/g,"from '$1.mjs'"));
  }
  const {searchRegistrations,dataMode}=await import(pathToFileURL(join(folder,'registration-provider.mjs')));
- const {bulkCZDS,validateCoverage}=await import(pathToFileURL(join(folder,'czds-provider.mjs')));
+ const {bulkCZDS,validateCoverage,readIndexStatus}=await import(pathToFileURL(join(folder,'czds-provider.mjs')));
  process.env.REGCOUNT_LIVE_ENABLED='true';process.env.REGCOUNT_DATA_SOURCE='czds';
  process.env.REGCOUNT_CZDS_API_URL='https://data.regcount.test';process.env.REGCOUNT_CZDS_API_TOKEN=token;
  let payload=result,status=200,calls=0;
@@ -27,7 +27,7 @@ try {
   assert.equal(url.origin,'https://data.regcount.test');assert.equal(options.headers.Authorization,'Bearer '+token);
   assert.equal(options.redirect,'error');assert.equal(options.cache,'no-store');
   if(url.pathname==='/v1/search'){assert.equal(url.searchParams.get('q'),'cypress');assert.equal(url.searchParams.get('position'),'beginning');}
-  else {assert.equal(options.method,'POST');assert.deepEqual(JSON.parse(options.body).queries,['cypress','unknown']);}
+  else if(url.pathname!=='/v1/status') {assert.equal(options.method,'POST');assert.deepEqual(JSON.parse(options.body).queries,['cypress','unknown']);}
   return Response.json(payload,{status});
  };
  assert.equal(dataMode(),'czds');
@@ -46,6 +46,13 @@ try {
  assert.deepEqual((await bulkCZDS(['cypress','unknown'])).results.map(row=>row.total),[1,0]);
  payload.results[1].query='cypress';await assert.rejects(bulkCZDS(['cypress','unknown']),/unexpected/);
  assert.equal(validateCoverage({...coverage,zones:[{...coverage.zones[0],downloadedAt:'2020-01-01T00:00:00Z'}]}).zones[0].stale,true);
+ payload={status:'ready',coverage};
+ assert.equal((await readIndexStatus()).capabilities.advancedSearch,false,'Old VPS keeps advanced controls disabled');
+ payload={status:'ready',coverage,capabilities:{advancedSearch:'true'}};
+ assert.equal((await readIndexStatus()).capabilities.advancedSearch,false,'Only an explicit boolean capability enables controls');
+ payload.capabilities.advancedSearch=true;
+ assert.equal((await readIndexStatus()).capabilities.advancedSearch,true);
+ payload.status='starting';await assert.rejects(readIndexStatus(),/unexpected/);
  const before=calls;process.env.REGCOUNT_CZDS_API_URL='http://data.regcount.test';
  await assert.rejects(searchRegistrations('cypress','beginning'),/configured/);assert.equal(calls,before);
  process.env.REGCOUNT_CZDS_API_URL='https://data.regcount.test';delete process.env.REGCOUNT_CZDS_API_TOKEN;

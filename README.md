@@ -4,6 +4,14 @@ A responsive domain registration research application with exact-name search, ex
 
 ## Data mode
 
+The research release adds optional advanced search (multiple keywords,
+filters, global count sorting and snapshot-bound pages) and a `/coverage`
+dashboard. See [the data access and parity roadmap](docs/DATA-AND-PARITY.md) for
+what is implemented, remaining dotDB feature gaps, and service activation.
+Existing basic search and coverage stay compatible with v1. Advanced controls
+remain disabled until the API explicitly reports support. This release
+does not activate new extensions or claim complete registration coverage.
+
 The VPS connection is prepared in [the CZDS search service](infra/vps/search/README.md).
 It adds a protected HTTPS API, a read-only database role, bulk exact-name queries,
 bounded keyword matching, and coverage/download-time labels in the website and CSV.
