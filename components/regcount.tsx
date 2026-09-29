@@ -1,7 +1,7 @@
 'use client';
-import Link from 'next/link';
 import { SiteHeader } from '@/components/site-header';
 import { ResearchNextSteps } from '@/components/research-next-steps';
+import { DomainUniverse, SearchDiscovery } from '@/components/domain-universe';
 import { SearchResults } from '@/components/search-results';
 import { CoverageNote } from '@/components/coverage-note';
 import { AdvancedSearch, emptyAdvanced, type AdvancedFields } from '@/components/advanced-search';
@@ -82,7 +82,8 @@ export default function RegCount({initialView='search',initialSource='demo',prom
  <div className="preview-strip"><div><span className="preview-label">{source==='demo'?'PREVIEW':'DATA'}</span><span>{source==='demo'?'Explore sample data. Live registration data isn’t connected yet.':source==='czds'?'Real domain data from CZDS zone snapshots. Coverage and update times are shown with results.':'Registration data by dotDB. Counts reflect the provider’s index.'}</span><button onClick={()=>setInfoOpen(true)}>Learn more <ArrowUpRight size={14}/></button></div></div>
  <main id="main" className="workspace">
  {view==='search'&&<section aria-label="Domain search">
-  <div className="search-hero"><div className="page-intro"><div className="eyebrow"><span className="tiny-bars" aria-hidden="true"><i/><i/><i/></span>DOMAIN REGISTRATION RESEARCH</div><h1>One name. <span>The bigger picture.</span></h1><p>Explore its reach. Compare extensions. Find your next great name.</p><div className="hero-benefits"><span><Check size={15}/>Exact-name search</span><span><Check size={15}/>Bulk comparison</span><span><Check size={15}/>CSV exports</span></div></div><Link className="hero-bulk-link" href="/bulk-domain-search"><Layers3 size={18}/><span>Have a shortlist?<strong>Compare names in bulk <ArrowRight size={14}/></strong></span></Link></div>
+  <div className="search-stage">
+  <div className="search-hero"><div className="page-intro"><div className="eyebrow"><span className="tiny-bars" aria-hidden="true"><i/><i/><i/></span>FOR THE DOMAIN CURIOUS.</div><h1>See how far<span>a name goes.</span></h1><p>Every great idea starts with a name. Explore its registered extensions, discover related names, and find your next move.</p><div className="hero-benefits"><span><Check size={15}/>Exact-name search</span><span><Check size={15}/>Bulk comparison</span><span><Check size={15}/>CSV exports</span></div></div><DomainUniverse name={input}/></div>
 
   <div className="search-workbench">
   <div className="search-workbench-heading"><label htmlFor="domain-search">Name or domain</label><span><ShieldCheck size={14}/>No account needed</span></div>
@@ -96,13 +97,14 @@ export default function RegCount({initialView='search',initialSource='demo',prom
   </div>
   <div className="sample-picks"><span>{source==='demo'?'Try a sample:':'Try a name:'}</span>{['cypress','atlas','orbit','nova'].map(name=><button key={name} onClick={()=>selectName(name)}>{name}<ArrowUpRight size={12}/></button>)}</div>
   </div>
+  </div>
   {error&&<div className="error-message" role="alert"><Info size={18}/>{error}<button onClick={()=>setError('')} aria-label="Dismiss error"><X size={17}/></button></div>}
-  <div className="research-layout research-layout-wide" data-nosnippet>
+  {!loading&&!result&&!error?<SearchDiscovery onFocus={()=>{inputRef.current?.focus();inputRef.current?.scrollIntoView({block:'center',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});}}/>:<div className="research-layout research-layout-wide" data-nosnippet>
    <section className="results-panel" aria-label="Search results" aria-busy={loading}>
    {loading?<div className="loading-results" aria-live="polite"><LoaderCircle className="spinning"/><p>Looking up {input}…</p><Skeleton className="h-24 w-full"/><div className="skeleton-grid">{Array.from({length:12},(_,i)=><Skeleton key={i} className="h-16"/>)}</div></div>:!result?<div className="empty-results"><div className="empty-extension-art" aria-hidden="true"><span>.org</span><div className="empty-symbol"><Globe2 size={28}/></div><span>.dev</span></div><h2>{error?'Search could not be completed':'Start with a name. Discover its reach.'}</h2><p>{error?'Check your search and try again.':'Your exact-match count, extension mix, and related names will appear here.'}</p><span className="empty-caption"><Search size={13}/>One search. A clearer perspective.</span></div>:result.total===null&&!result.related.length&&!result.research?<div className="empty-results"><div className="empty-symbol"><Search size={28}/></div><span className="sample-badge">SAMPLE COLLECTION</span><h2>No sample for “{result.query}”</h2><p>{result.message}</p><button className="primary-button" onClick={()=>selectName('cypress')}>Explore cypress <ArrowRight size={17}/></button></div>:<SearchResults key={`${result.source}-${result.query}-${result.position}-${result.fetchedAt}`} result={result} onSelectName={selectName} onPage={changePage}/>}
    </section>
    <ResearchNextSteps/>
-  </div>
+  </div>}
  </section>}
  {view==='bulk'&&<section aria-label="Bulk domain search">
   <div className="page-intro bulk-intro"><div className="eyebrow"><Layers3 size={16}/>BULK RESEARCH</div><h1>Bulk domain search.<br/><span>One clear comparison.</span></h1><p>Compare exact-match extension counts for up to 50 names at once.</p></div>
