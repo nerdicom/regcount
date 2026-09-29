@@ -43,7 +43,7 @@ try {
   assert.ok(ready, `Packaged server did not start: ${logs}`);
   const health = await fetch(`${base}/api/health`);
   assert.equal(health.headers.get('cache-control'), 'no-store');
-  assert.deepEqual(await health.json(), { status: 'ok', service: 'regcount', release: 'standalone-20260928' });
+  assert.deepEqual(await health.json(), { status: 'ok', service: 'regcount', release: 'next-16.3.6-20260928' });
   const home = await fetch(base);
   assert.equal(home.status, 200);
   const html = await home.text();
@@ -51,6 +51,12 @@ try {
   for (const route of ['/coverage', '/regcount-logo.png', '/nerdi-logo.webp', '/social-image']) {
     assert.equal((await fetch(base + route)).status, 200, `${route} must work from the package alone`);
   }
+  // The social image must never incorporate visitor-controlled query values.
+  const socialImage = await fetch(`${base}/social-image`);
+  assert.match(socialImage.headers.get('content-type') || '', /image\/png/);
+  const queryImage = await fetch(`${base}/social-image?value=${encodeURIComponent('<title>untrusted-marker</title>')}`);
+  assert.equal(queryImage.status, 200);
+  assert.deepEqual(Buffer.from(await queryImage.arrayBuffer()), Buffer.from(await socialImage.arrayBuffer()));
   const assets = [...html.matchAll(/(?:src|href)="([^" ]+\.(?:js|css)(?:\?[^" ]*)?)"/g)];
   assert.ok(assets.length > 0);
   for (const [, asset] of assets) assert.equal((await fetch(new URL(asset.replaceAll('&amp;', '&'), base))).status, 200, asset);
