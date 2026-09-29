@@ -6,12 +6,15 @@ import { ArrowUpRight, LoaderCircle, LogOut, UserRound } from 'lucide-react';
 
 export function AccountLink() {
   const { data: session, status } = useSession();
-  if (status === 'loading') return <span className="account-link account-loading" aria-label="Loading account"><LoaderCircle size={17} className="spinning"/></span>;
-  return <Link className="account-link" href={session ? '/account' : '/login'}>
-    {session ? <span className="account-avatar" aria-hidden="true">{(session.user?.name || 'R').slice(0, 1).toUpperCase()}</span> : <UserRound size={17}/>}
-    <span>{session ? 'My account' : 'Log in'}</span>
-    {!session && <ArrowUpRight size={14}/>}
-  </Link>;
+  if (status === 'loading') return <div className="account-actions" aria-busy="true"><span className="account-link account-loading" aria-label="Loading account"><LoaderCircle size={17} className="spinning"/></span></div>;
+  return <div className="account-actions">
+    {!session && <Link className="signup-link" href="/login?mode=signup">Sign up</Link>}
+    <Link className="account-link" href={session ? '/account' : '/login'}>
+      {session ? <span className="account-avatar" aria-hidden="true">{(session.user?.name || 'R').slice(0, 1).toUpperCase()}</span> : <UserRound size={17}/>}
+      <span>{session ? 'My account' : 'Log in'}</span>
+      {!session && <ArrowUpRight size={14}/>}
+    </Link>
+  </div>;
 }
 
 export function SignOutButton() {
