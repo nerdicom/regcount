@@ -18,8 +18,8 @@ const errors: Record<string, string> = {
   SessionRequired: 'Please sign in to view your account.',
 };
 
-export function LoginForm({ providers, callbackUrl, errorCode }: {
-  providers: { google: boolean; facebook: boolean }; callbackUrl: string; errorCode?: string;
+export function LoginForm({ providers, callbackUrl, errorCode, isSignUp = false }: {
+  providers: { google: boolean; facebook: boolean }; callbackUrl: string; errorCode?: string; isSignUp?: boolean;
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState(errorCode ? (Object.hasOwn(errors, errorCode) ? errors[errorCode] : 'Sign-in could not be completed. Please try again.') : '');
@@ -30,8 +30,8 @@ export function LoginForm({ providers, callbackUrl, errorCode }: {
   }
   return <>
     <span className="auth-kicker">YOUR REGCOUNT ACCOUNT</span>
-    <h1>Welcome, domain nerd.</h1>
-    <p className="auth-intro">Sign in or get started with an account you already use.</p>
+    <h1>{isSignUp ? 'Create your account.' : 'Welcome, domain nerd.'}</h1>
+    <p className="auth-intro">{isSignUp ? 'Get started with Google or Facebook. No extra password to remember.' : 'Sign in or get started with an account you already use.'}</p>
     {error && <div className="auth-error" role="alert">{error}</div>}
     {!providers.google && !providers.facebook && <p className="auth-notice">Sign-in is coming soon. You can explore RegCount in the meantime.</p>}
     <div className="auth-provider-buttons">

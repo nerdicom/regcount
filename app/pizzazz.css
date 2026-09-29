@@ -20,6 +20,11 @@
 .research-shell .product-header .product-nav a[aria-current=page] { background: #eaf7f2; color: #116e60; }
 .research-shell .product-header .account-link { color: #294258; border-color: #dce4ee; background: #fff; }
 .research-shell .product-header .account-link:hover { background: #f2f6fa; }
+.product-header .account-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.product-header .account-actions .account-link { min-height: 44px; margin: 0; }
+.product-header .account-actions .account-loading { min-width: 214px; }
+.product-header .signup-link { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 17px; border: 1px solid #116e60; border-radius: 8px; color: #fff; background: #116e60; font-size: .8125rem; font-weight: 700; white-space: nowrap; box-shadow: 0 3px 9px #116e601a; }
+.product-header .signup-link:hover { background: #0d594e; border-color: #0d594e; box-shadow: 0 4px 12px #116e602b; }
 .research-shell .preview-strip { background: #102237; border-color: #ffffff0b; color: #aebed2; }
 .research-shell .preview-strip>div { font-size: .6875rem; padding-top: 9px; padding-bottom: 9px; }
 .research-shell .preview-label { color: #8ed9bf; }
@@ -230,4 +235,25 @@
 @media(prefers-reduced-motion:reduce) {
   .orbit-extension, .universe-orbit { animation: none; }
   .discovery-card:hover, .research-shell .sample-picks button:hover, .research-shell .search-button:hover { transform: none; }
+}
+
+/* Keep both account actions visible while navigation gets its own row. */
+@media(max-width:960px) {
+  .site-shell .site-header.product-header { height: auto; }
+  .site-shell .product-header .header-inner { flex-wrap: wrap; gap: 12px; padding-top: 14px; padding-bottom: 10px; }
+  .product-header .account-actions { margin-left: auto; }
+  .site-shell .product-header .product-nav { order: 3; width: 100%; justify-content: space-between; height: auto; margin: 0; gap: 3px; }
+  .site-shell .product-header .product-nav a { justify-content: center; flex: 1; min-height: 40px; }
+}
+@media(max-width:480px) {
+  .product-header .account-actions { gap: 6px; }
+  .product-header .account-actions .account-link { min-width: 0; padding: 8px 10px; font-size: .75rem; }
+  .product-header .account-actions .account-link:not(.account-loading)>svg { display: none; }
+  .product-header .account-actions .account-loading { min-width: 132px; }
+  .product-header .signup-link { padding: 10px 12px; font-size: .75rem; }
+}
+@media(max-width:420px) {
+  .site-shell .product-header .header-inner { padding-left: 16px; padding-right: 16px; gap: 8px; }
+  .site-shell .product-header .brand { font-size: 1.3rem; gap: 4px; }
+  .site-shell .product-header .brand img { width: 30px; height: 30px; margin-right: 0; }
 }
