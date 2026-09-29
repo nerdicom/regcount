@@ -8,18 +8,18 @@
   overflow-x: clip;
 }
 .research-shell .site-header.product-header {
-  background: var(--midnight);
-  border-color: #ffffff12;
+  background: #fff;
+  border-color: #e1e8f0;
   height: 84px;
 }
-.research-shell .product-header .brand { color: #fff; font-size: 1.7rem; }
+.research-shell .product-header .brand { color: var(--ink); font-size: 1.7rem; }
 .research-shell .product-header .brand img { padding: 4px; background: #fff; border-radius: 50%; width: 40px; height: 40px; margin-right: 5px; }
-.research-shell .product-header .brand b { color: var(--mint); }
-.research-shell .product-header .product-nav a { color: #b6c5d9; }
-.research-shell .product-header .product-nav a:hover { background: #ffffff0c; color: #fff; }
-.research-shell .product-header .product-nav a[aria-current=page] { background: #ffffff0c; color: var(--mint); }
-.research-shell .product-header .account-link { color: #f1f6ff; border-color: #ffffff28; background: #ffffff05; }
-.research-shell .product-header .account-link:hover { background: #ffffff12; }
+.research-shell .product-header .brand b { color: #13846f; }
+.research-shell .product-header .product-nav a { color: #52657d; }
+.research-shell .product-header .product-nav a:hover { background: #f2f6fa; color: var(--ink); }
+.research-shell .product-header .product-nav a[aria-current=page] { background: #eaf7f2; color: #116e60; }
+.research-shell .product-header .account-link { color: #294258; border-color: #dce4ee; background: #fff; }
+.research-shell .product-header .account-link:hover { background: #f2f6fa; }
 .research-shell .preview-strip { background: #102237; border-color: #ffffff0b; color: #aebed2; }
 .research-shell .preview-strip>div { font-size: .6875rem; padding-top: 9px; padding-bottom: 9px; }
 .research-shell .preview-label { color: #8ed9bf; }
@@ -34,7 +34,7 @@
     radial-gradient(ellipse at 8% 90%, #32356640, transparent 35%), var(--midnight);
   border-bottom: 1px solid #273e50;
 }
-.research-shell .search-hero { display: grid; grid-template-columns: 1.15fr 1fr; gap: 18px; align-items: center; padding: 36px 0 22px; min-height: 330px; }
+.research-shell .search-hero { display: grid; grid-template-columns: 1.15fr 1fr; gap: 18px; align-items: center; padding: 22px 0 12px; min-height: 310px; }
 .research-shell .search-hero .page-intro { margin: 0; position: relative; z-index: 1; }
 .research-shell .search-hero .eyebrow { color: #b2c7de; font-size: .625rem; letter-spacing: 2px; }
 .research-shell .search-hero h1 { color: #f5f8ff; font-size: clamp(3rem, 4.9vw, 4.3rem); line-height: 1.04; font-weight: 780; letter-spacing: -3px; margin: 19px 0 20px; }
@@ -42,7 +42,7 @@
 .research-shell .search-hero .page-intro>p { max-width: 435px; color: #b6c6d9; font-size: .9375rem; line-height: 1.75; }
 .research-shell .hero-benefits { display: flex; color: #c2d0e1; font-size: .6875rem; margin-top: 22px; gap: 18px; }
 .research-shell .hero-benefits svg { color: var(--mint); }
-.domain-universe { position: relative; width: 100%; max-width: 520px; aspect-ratio: 520 / 340; justify-self: end; user-select: none; }
+.domain-universe { position: relative; width: 100%; max-width: 460px; aspect-ratio: 520 / 340; justify-self: end; user-select: none; }
 .universe-glow { position: absolute; inset: 16% 19%; border-radius: 50%; background: radial-gradient(circle at 60% 35%, #42d6bc19, #2e6e8010 55%, transparent 70%); box-shadow: 0 0 70px #43928a0c; }
 .universe-lines { position: absolute; width: 100%; height: 100%; overflow: visible; }
 .universe-globe { color: #4b9f9938; }
@@ -153,7 +153,7 @@
 .research-shell .bulk-submit { background: #173f4c; }
 @media(min-width:1600px) { .research-shell .search-hero h1 { font-size: 4.3rem; } }
 @media(max-width:1000px) {
-  .research-shell .search-hero { grid-template-columns: 1.2fr 1fr; padding-top: 32px; min-height: 310px; }
+  .research-shell .search-hero { grid-template-columns: 1.2fr 1fr; padding-top: 24px; min-height: 286px; }
   .research-shell .search-hero h1 { font-size: 3.4rem; letter-spacing: -2.5px; }
   .research-shell .search-hero .page-intro>p { font-size: .875rem; }
   .research-shell .hero-benefits { font-size: .6rem; gap: 12px; }
@@ -173,7 +173,7 @@
   .research-shell .product-header .brand img { width: 35px; height: 35px; }
   .research-shell .product-header .product-nav a { font-size: .6875rem; min-height: 38px; }
   .research-shell .preview-strip>div { font-size: .6rem; }
-  .research-shell .search-hero { grid-template-columns: 1fr .8fr; min-height: 276px; gap: 6px; padding: 28px 0; }
+  .research-shell .search-hero { grid-template-columns: 1fr .8fr; min-height: 260px; gap: 6px; padding: 22px 0 18px; }
   .research-shell .search-hero h1 { font-size: clamp(2.2rem, 6vw, 3rem); letter-spacing: -1.8px; margin: 16px 0; }
   .research-shell .search-hero .eyebrow { font-size: .52rem; letter-spacing: 1.15px; }
   .research-shell .search-hero .page-intro>p { font-size: .8125rem; line-height: 1.7; }
@@ -197,7 +197,7 @@
   .discovery-icon { width: 37px; height: 37px; }
 }
 @media(max-width:580px) {
-  .research-shell .search-hero { display: block; position: relative; padding: 30px 0 24px; min-height: 0; }
+  .research-shell .search-hero { display: block; position: relative; padding: 22px 0 16px; min-height: 0; }
   .research-shell .search-hero .page-intro { max-width: 100%; }
   .research-shell .search-hero h1 { font-size: clamp(2.65rem, 10vw, 3.6rem); letter-spacing: -2.2px; position: relative; z-index: 1; }
   .research-shell .search-hero .page-intro>p { max-width: 340px; font-size: .8125rem; }
