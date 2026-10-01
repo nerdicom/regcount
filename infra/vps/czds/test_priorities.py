@@ -101,6 +101,19 @@ class PriorityTests(unittest.TestCase):
             priorities.reindex(client, 'app')
         self.importer.assert_not_called()
 
+    def test_reindex_accepts_only_timestamp_rounding_not_another_snapshot(self):
+        self.fake_download('app', 'url', 'token', MEDIUM)
+        path = self.root / 'cache/app.json'
+        metadata = client.private_json(path)
+        metadata['downloaded_at'] = 1790880320.1234567
+        client.save_json(path, metadata)
+        self.current['app'] = {**metadata, 'downloaded_at': 1790880320.123457}
+        priorities.reindex(client, 'app')
+        self.assertEqual(self.importer.call_count, 1)
+        self.current['app']['downloaded_at'] = metadata['downloaded_at'] + 1
+        with self.assertRaises(client.SafeError):
+            priorities.reindex(client, 'app')
+
 
 if __name__ == '__main__':
     unittest.main()

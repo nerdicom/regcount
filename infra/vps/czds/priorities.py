@@ -79,7 +79,9 @@ def reindex(client, tld):
     if not path.exists():
         raise client.SafeError("No committed snapshot cache. The next normal refresh will build the index.")
     cached = client.private_json(path)
-    if cached.get('sha256') != current['sha256'] or float(cached.get('downloaded_at', 0)) != float(current['downloaded_at']):
+    # PostgreSQL timestamps round the downloader's floating seconds to microseconds.
+    same_time = abs(float(cached.get('downloaded_at', 0)) - float(current['downloaded_at'])) <= 0.000001
+    if cached.get('sha256') != current['sha256'] or not same_time:
         raise client.SafeError("Cache differs from the committed snapshot. Reindex did not change live data.")
     # import_cache verifies the file hash, gzip CRC, serial and record-count guard.
     # Its transactional swap includes the new index and preserves download timing.
