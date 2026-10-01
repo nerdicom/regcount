@@ -1,5 +1,10 @@
 # RegCount: data access and feature parity
 
+October 1 update: see [priority coverage and search rollout](PRIORITY-ROLLOUT.md)
+for the newly approved `.top` feed, the bounded queue expansion, substring-index
+upgrade and current external-source blockers. The historical findings below
+remain dated; they do not describe completion of that rollout.
+
 This is the implementation roadmap, not a claim that RegCount already has the
 same coverage or every feature as dotDB. Reviewed September 27, 2026 against
 dotDB's public [search](https://dotdb.com/search?keyword=agent&position=any),

@@ -59,8 +59,16 @@ export async function search(pool, query, position = 'any', exactOnly = false) {
       await client.query('SAVEPOINT related_search');
       try {
         await client.query("SET LOCAL statement_timeout = '2500ms'");
-        const names = (await client.query(`SELECT DISTINCT label FROM domain_index.domains
-          WHERE label LIKE $1 AND label <> $2 ORDER BY label LIMIT 101`, [pattern, query])).rows;
+        // A materialized filtering step lets substring queries use the trigram
+        // index instead of scanning the alphabetic index to satisfy ORDER/LIMIT.
+        // Prefix queries retain their efficient ordered B-tree scan.
+        const candidates = position === 'beginning'
+          ? `SELECT DISTINCT label FROM domain_index.domains
+             WHERE label LIKE $1 AND label <> $2 ORDER BY label LIMIT 101`
+          : `WITH candidates AS MATERIALIZED (
+               SELECT label FROM domain_index.domains WHERE label LIKE $1 AND label <> $2
+             ) SELECT DISTINCT label FROM candidates ORDER BY label LIMIT 101`;
+        const names = (await client.query(candidates, [pattern, query])).rows;
         relatedPartial = names.length > 100;
         const matches = await extensions(client, names.slice(0, 100).map(row => row.label));
         related = matches.map(row => ({ name: row.label, suffixes: row.suffixes, count: row.suffixes.length }))
@@ -91,5 +99,21 @@ export async function bulk(pool, queries) {
   });
 }
 export async function status(pool) {
-  return transaction(pool, async (_client, coverage) => ({ status: 'ready', coverage, capabilities: { advancedSearch: true } }));
+  return transaction(pool, async (client, coverage) => {
+    // Do not enable expensive advanced controls merely because code was deployed.
+    // Every committed partition needs its valid, full-column substring index.
+    const row = (await client.query(`SELECT count(DISTINCT p.inhrelid)::int AS indexed
+      FROM pg_inherits p JOIN pg_index i ON i.indrelid=p.inhrelid
+      JOIN pg_opclass op ON op.oid=i.indclass[0]
+      JOIN pg_namespace ns ON ns.oid=op.opcnamespace
+      JOIN pg_am am ON am.oid=op.opcmethod
+      JOIN pg_attribute a ON a.attrelid=i.indrelid AND a.attnum=i.indkey[0]
+      WHERE p.inhparent='domain_index.domains'::regclass
+        AND i.indisvalid AND i.indisready AND i.indnkeyatts=1
+        AND i.indpred IS NULL AND i.indexprs IS NULL
+        AND a.attname='label' AND op.opcname='gin_trgm_ops'
+        AND ns.nspname='public' AND am.amname='gin'`)).rows[0];
+    const ready = Number(row.indexed) === coverage.zones.length;
+    return { status: 'ready', coverage, capabilities: { advancedSearch: ready, substringIndexes: ready } };
+  });
 }
