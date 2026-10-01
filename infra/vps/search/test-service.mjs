@@ -3,10 +3,11 @@ import { test } from 'node:test';
 import { search, bulk, status, coverageFromRows } from './database.mjs';
 import { createSearchServer } from './http.mjs';
 const { PGlite } = await import(process.env.PGLITE_MODULE || '@electric-sql/pglite');
+const { pg_trgm } = await import(process.env.PGLITE_TRGM_MODULE || '@electric-sql/pglite/contrib/pg_trgm');
 
 test('real PostgreSQL queries, coverage, bounded results, role permissions and HTTP protection', async () => {
-  const db = new PGlite();
-  await db.exec(`CREATE SCHEMA domain_index;
+  const db = new PGlite({ extensions: { pg_trgm } });
+  await db.exec(`CREATE EXTENSION pg_trgm WITH SCHEMA public; CREATE SCHEMA domain_index;
     CREATE TABLE domain_index.domains (label text COLLATE "C", tld text COLLATE "C", PRIMARY KEY(label,tld)) PARTITION BY LIST(tld);
     CREATE TABLE domain_index.dev PARTITION OF domain_index.domains FOR VALUES IN ('dev');
     CREATE TABLE domain_index.org PARTITION OF domain_index.domains FOR VALUES IN ('org');
@@ -38,6 +39,14 @@ test('real PostgreSQL queries, coverage, bounded results, role permissions and H
     await assert.rejects(db.query('DELETE FROM domain_index.domains'), /permission denied/);
     await assert.rejects(db.query('SELECT * FROM domain_index.dev'), /permission denied/);
     assert.equal((await status(pool)).coverage.zones.length,2);
+    assert.equal((await status(pool)).capabilities.advancedSearch,false);
+    await db.exec(`RESET ROLE;
+      CREATE INDEX dev_trgm ON domain_index.dev USING gin(label gin_trgm_ops);
+      SET ROLE regcount_search_test;`);
+    assert.equal((await status(pool)).capabilities.advancedSearch,false, 'A partial backfill cannot enable controls');
+    await db.exec(`RESET ROLE;
+      CREATE INDEX org_trgm ON domain_index.org USING gin(label gin_trgm_ops);
+      SET ROLE regcount_search_test;`);
     assert.equal((await status(pool)).capabilities.advancedSearch,true);
     assert.throws(()=>coverageFromRows([]),/No imported/);
 
@@ -47,6 +56,7 @@ test('real PostgreSQL queries, coverage, bounded results, role permissions and H
       INSERT INTO domain_index.dev_new VALUES ('cypress','dev');
       INSERT INTO domain_index.dev_new SELECT 'cypress'||lpad(i::text,3,'0'),'dev' FROM generate_series(1,125) i;
       COMMIT; SET ROLE regcount_search_test;`);
+    assert.equal((await status(pool)).capabilities.advancedSearch,false, 'Replacing a partition without its index disables controls');
     const bounded = await search(pool,'cypress','beginning');
     assert.equal(bounded.related.length,100);
     assert.equal(bounded.relatedPartial,true);
